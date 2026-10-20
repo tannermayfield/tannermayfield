@@ -1,11 +1,9 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg" /><img alt="Tanner Mayfield, Provo, Utah. Information Systems student building AI-assisted, full-stack software that adapts to people. A now.txt window: building Airline Intelligence; ETL + delay-risk models; shipping Polybot and BravOS; teaching Spanish at the MTC; studying IS at BYU, class of &#x27;28; + Spanish minor; learning Portuguese and ASL." src="assets/hero-light.svg" width="100%" /></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg" /><img alt="Tanner Mayfield, Provo, Utah. Information Systems student mixing data, software, and AI to meet buisness needs. A now.txt window: building Airline Intelligence; ETL + delay-risk models; shipping Polybot and BravOS; teaching Spanish at the MTC; studying IS at BYU, class of &#x27;28; + Spanish minor; learning Portuguese and ASL." src="assets/hero-light.svg" width="100%" /></picture>
 
 <a href="https://tannermayfield.dev"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/btn-site-dark.svg" /><img alt="Portfolio" src="assets/btn-site-light.svg" width="149" /></picture></a>
 <a href="https://tannermayfield.dev/resume/"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/btn-resume-dark.svg" /><img alt="Résumé" src="assets/btn-resume-light.svg" width="142" /></picture></a>
 <a href="https://www.linkedin.com/in/tanner-mayfield"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/btn-linkedin-dark.svg" /><img alt="LinkedIn" src="assets/btn-linkedin-light.svg" width="146" /></picture></a>
 <a href="mailto:tannerjamesmayfield@gmail.com"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/btn-email-dark.svg" /><img alt="Email" src="assets/btn-email-light.svg" width="123" /></picture></a>
-
-I start with data because everything else depends on it. From there, I use AI and software to take repetitive work off people's plates and make tools adapt to the people using them.
 
 <br>
 
