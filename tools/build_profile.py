@@ -16,7 +16,7 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
-from ascii_scenes import BALL, SCENES
+from sketch_scenes import SCENES, Sketch
 
 ROOT = Path(__file__).resolve().parent.parent
 TOOLS = ROOT / "tools"
@@ -33,7 +33,7 @@ EMAIL = "tannerjamesmayfield@gmail.com"
 HERO = {
     "location": "PROVO, UTAH",
     "name": ["TANNER", "MAYFIELD"],
-    "tagline": ["Information Systems student using", "data, software, and AI tools", "that meet business needs."],
+    "tagline": ["Information Systems student using", "data, software, and AI tools", "to meet business needs."],
 }
 
 # now.txt rows: (key, value). An empty key continues the row above.
@@ -116,20 +116,20 @@ STACK = [
 
 ABOUT_HEAD = ("ABOUT ME", "Beyond the code")
 
-# Hobbies cycle in this order. Each has an ASCII scene in tools/ascii_scenes.py under the same key.
+# Hobbies cycle in this order: (scene key, title, description, seconds on screen).
+# Each scene is drawn in tools/sketch_scenes.py under the same key.
 HOBBIES = [
     ("baseball", "Baseball",
-     "I played all through high school on various travel teams, and I'm a die-hard Atlanta Braves fan."),
+     "I played all through high school on various travel teams, and I'm a die-hard Atlanta Braves fan.", 16),
     ("basketball", "Basketball",
-     "My favorite pastime with my friends for as long as I can remember."),
+     "My favorite pastime with my friends for as long as I can remember.", 15),
     ("travel", "Travel",
-     "As a kid, traveling with my family was how we connected. Now my wife and I travel as much as our schedule allows."),
+     "As a kid, traveling with my family was how we connected. Now my wife and I travel as much as our schedule allows.", 13),
     ("bowling", "Bowling",
-     "Humbly part of the 200 club at the BYU bowling alley. I got the score on my first try, and now I'm going for 300."),
+     "Humbly part of the 200 club at the BYU bowling alley. I got the score on my first try, and now I'm going for 300.", 11),
     ("golf", "Golf",
-     "As a kid I thought golf was boring. Now that I'm older... golf is still boring, but in a relaxing way I enjoy with friends and family."),
+     "As a kid I thought golf was boring. Now that I'm older... golf is still boring, but in a relaxing way I enjoy with friends and family.", 15),
 ]
-HOBBY_SECONDS = 11  # how long each hobby stays on screen
 
 FOOTER = {
     "label": "CONTACT",
@@ -459,11 +459,12 @@ def stack(t):
 
 
 # --------------------------------------------------------------------------
-# "Beyond the code": hobbies cycle on the left, an ASCII scene plays on the right.
+# "Beyond the code": hobbies cycle on the left; a pencil-sketch "video" fills the
+# open space to the right (wider at the top, where the heading is short).
 # --------------------------------------------------------------------------
 
-PANEL = dict(x=400, y=112, w=392, h=214)
-GRID_X, GRID_Y, LINE_H = PANEL["x"] + 16, PANEL["y"] + 52, 15
+# The drawing area: everything right of the text column, plus the strip beside the heading.
+ART_AREA = "M296 6H834V354H386V116H296Z"
 
 
 def _kf(svg, body):
@@ -475,108 +476,57 @@ def _kf(svg, body):
     return names[body]
 
 
-def _visibility(windows, period):
-    """step-end opacity keyframes that are 1 inside the given [t0, t1) windows (seconds)."""
-    def on(t):
-        return int(any(a <= t < b for a, b in windows))
-    cuts = sorted({0.0, *(a for a, _ in windows), *(b for _, b in windows)})
-    body = "".join(f"{100 * c / period:.3f}%{{opacity:{on(c)}}}" for c in cuts if c < period)
-    return body + f"100%{{opacity:{on(period - 1e-6)}}}"
-
-
-def _block(svg, col, row, lines, fill):
-    cw = measure("a", "M", 400, 12)
-    out = []
-    for i, line in enumerate(lines):
-        body = line.lstrip(" ")
-        if body.strip():
-            x = GRID_X + (col + len(line) - len(body)) * cw
-            out.append(svg.text(x, GRID_Y + (row + i) * LINE_H, body.rstrip(), "M", 400, 12, fill=fill))
-    return "".join(out)
-
-
-def _frames(svg, period, fs, fill, origin=(0, 0)):
-    out = []
-    for f in fs:
-        col, row, lines, t0, t1 = f if len(f) == 5 else (*origin, *f)
-        cls = ' class="f0"' if t0 == 0 else ""
-        name = _kf(svg, _visibility([(t0, t1)], period))
-        out.append(f'<g{cls} style="opacity:0;animation:{name} {period}s step-end infinite">'
-                   f'{_block(svg, col, row, lines, fill)}</g>')
-    return "".join(out)
-
-
-def _scene(svg, scene):
-    t, period, cw = svg.t, scene["period"], measure("a", "M", 400, 12)
-    out = []
-    for item in scene["items"]:
-        fill = t[item["color"]]
-        if item["kind"] == "static":
-            out.append(_block(svg, item["col"], item["row"], item["lines"], fill))
-        elif item["kind"] == "frames":
-            out.append(_frames(svg, period, item["frames"], fill))
-        else:
-            lines = item["lines"]
-            framed = isinstance(lines[0], tuple)
-            content = _frames(svg, period, lines, fill) if framed else _block(svg, 0, 0, lines, fill)
-            path = sorted(item["path"])
-            if path[0][0] > 0:
-                path.insert(0, (0, *path[0][1:]))
-            if path[-1][0] < period:
-                path.append((period, *path[-1][1:]))
-            body = "".join(f"{100 * tt / period:.3f}%{{transform:translate({c * cw:.1f}px,{r * LINE_H:.1f}px)}}"
-                           for tt, c, r in path)
-            g = f'<g style="animation:{_kf(svg, body)} {period}s linear infinite">{content}</g>'
-            if item["show"]:
-                vis = _kf(svg, _visibility(item["show"], period))
-                g = f'<g style="opacity:0;animation:{vis} {period}s step-end infinite">{g}</g>'
-            out.append(f'<g class="mv">{g}</g>')
-    return "".join(out)
-
-
 def about(t):
-    assert ord(BALL) in _instance("M", 400)[1].getBestCmap(), "ball glyph missing from the mono font"
     label, heading = ABOUT_HEAD
-    n, T = len(HOBBIES), HOBBY_SECONDS
-    cycle = n * T
-    title = f"{heading}: " + " ".join(f"{name}: {desc}" for _, name, desc in HOBBIES) + \
-        " Each hobby plays as a looping ASCII animation."
+    n = len(HOBBIES)
+    starts, cycle = [], 0
+    for h in HOBBIES:
+        starts.append(cycle)
+        cycle += h[3]
+    title = f"{heading}: " + " ".join(f"{name}: {desc}" for _, name, desc, _ in HOBBIES) + \
+        " Each hobby plays as an animated pencil sketch."
     svg = Svg(840, 362, title, t)
-    svg.css += ["@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}",
-                "@media (prefers-reduced-motion: reduce){.hob{opacity:0!important}.h0,.f0{opacity:1!important}.mv{display:none}}"]
+    svg.css += [
+        "@keyframes boil{0%{filter:url(#w0)}33.3%{filter:url(#w1)}66.6%{filter:url(#w2)}}",
+        ".sk path,.sk circle,.sk line{vector-effect:non-scaling-stroke}.sk .tb{vector-effect:none}",
+        "@media (prefers-reduced-motion: reduce){.hob{opacity:0!important}.h0{opacity:1!important}.sk{display:none}}",
+    ]
+    # Three slightly different wobble filters, swapped a few times a second: the "line boil" of hand-drawn animation.
+    for i in range(3):
+        svg.defs.append(
+            f'<filter id="w{i}" filterUnits="userSpaceOnUse" x="290" y="0" width="550" height="362">'
+            f'<feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="{i * 7 + 3}"/>'
+            f'<feDisplacementMap in="SourceGraphic" scale="2.6" xChannelSelector="R" yChannelSelector="G"/></filter>')
+    svg.defs.append('<filter id="mb" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="9"/></filter>'
+                    f'<mask id="dm" maskUnits="userSpaceOnUse" x="0" y="0" width="840" height="362">'
+                    f'<path d="{ART_AREA}" fill="#fff" filter="url(#mb)"/></mask>')
     card(svg, 830, 350, t["bg"])
-    P = PANEL
-    svg.defs.append(f'<clipPath id="pc"><rect x="{P["x"] + 1}" y="{P["y"] + 33}" '
-                    f'width="{P["w"] - 2}" height="{P["h"] - 34}"/></clipPath>')
     b = svg.body
     b += [svg.text(40, 54, label, size=11, fill=t["muted"], ls=0.16),
           svg.text(40, 88, heading, weight=700, size=28, ls=-0.01)]
 
-    # Screen frame, same chrome as the now.txt window.
-    x, y, w, h = P["x"], P["y"], P["w"], P["h"]
-    b.append(f'<rect x="{x + 6}" y="{y + 6}" width="{w}" height="{h}" rx="14" fill="{t["ink"]}"/>'
-             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="14" fill="{t["panel"]}" stroke="{t["ink"]}" stroke-width="2"/>'
-             f'<path d="M{x} {y + 32}V{y + 14}a14 14 0 0 1 14-14h{w - 28}a14 14 0 0 1 14 14V{y + 32}z" '
-             f'fill="{t["head"]}" stroke="{t["ink"]}" stroke-width="2"/>'
-             + "".join(f'<circle cx="{x + 18 + i * 15}" cy="{y + 16}" r="4.2" fill="none" stroke="{t["ink"]}" '
-                       f'stroke-width="1.6"/>' for i in range(3)))
-
-    # Progress bar restarts with every hobby (its loop length equals one hobby's screen time).
-    b.append(f'<rect x="120" y="311" width="252" height="6" rx="3" fill="{t["faint"]}" opacity="0.35"/>'
-             f'<rect x="120" y="311" width="252" height="6" rx="3" fill="{t["accent"]}" '
-             f'style="transform-box:fill-box;transform-origin:left;animation:fill {T}s linear infinite"/>')
-
-    for i, (key, name, desc) in enumerate(HOBBIES):
-        vis = _kf(svg, _visibility([(i * T, (i + 1) * T)], cycle))
+    for i, (key, name, desc, dur) in enumerate(HOBBIES):
+        p0, p1 = 100 * starts[i] / cycle, 100 * (starts[i] + dur) / cycle
+        on = "opacity:1;visibility:visible"
+        off = "opacity:0;visibility:hidden"
+        vis = _kf(svg, f"0%{{{on if i == 0 else off}}}" + (f"{p0:.3f}%{{{on}}}" if i else "") +
+                  f"{p1:.3f}%{{{off}}}100%{{{off}}}")
+        bar = _kf(svg, f"0%{{transform:scaleX(0)}}{p0:.3f}%{{transform:scaleX(0)}}{p1:.3f}%{{transform:scaleX(1)}}"
+                       f"100%{{transform:scaleX(1)}}")
         parts = [svg.text(40, 150, f"{i + 1:02d} / {n:02d}", size=11, fill=t["muted"], ls=0.16),
                  svg.text(40, 186, name, weight=700, size=26, ls=-0.01)]
         parts += [svg.text(40, 218 + 22 * j, line, weight=400, size=15, fill=t["muted"])
                   for j, line in enumerate(wrap(desc, 330, size=15))]
         parts += [f'<circle cx="{44 + 14 * k}" cy="314" r="4" fill="{t["accent"] if k == i else "none"}" '
                   f'stroke="{t["ink"]}" stroke-width="1.4"/>' for k in range(n)]
-        parts.append(svg.text(x + 70, y + 20.5, SCENES[key]["label"], size=12.5, fill=t["muted"]))
-        parts.append(f'<g clip-path="url(#pc)">{_scene(svg, SCENES[key])}</g>')
-        b.append(f'<g class="hob h{i}" style="opacity:0;animation:{vis} {cycle}s step-end infinite">{"".join(parts)}</g>')
+        parts.append(f'<rect x="120" y="311" width="252" height="6" rx="3" fill="{t["faint"]}" opacity="0.35"/>'
+                     f'<rect x="120" y="311" width="252" height="6" rx="3" fill="{t["accent"]}" '
+                     f'style="transform-box:fill-box;transform-origin:left;animation:{bar} {cycle}s linear infinite"/>')
+        sk = Sketch(svg, t, starts[i], dur, cycle, _kf)
+        parts.append(f'<g class="sk" mask="url(#dm)" fill="none" stroke-linecap="round" stroke-linejoin="round">'
+                     f'<g style="animation:boil 0.42s step-end infinite">{SCENES[key](sk)}</g></g>')
+        b.append(f'<g class="hob h{i}" style="opacity:0;visibility:hidden;animation:{vis} {cycle}s step-end infinite">'
+                 f'{"".join(parts)}</g>')
     return svg
 
 
