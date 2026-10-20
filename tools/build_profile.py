@@ -16,6 +16,8 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
+from ascii_scenes import BALL, SCENES
+
 ROOT = Path(__file__).resolve().parent.parent
 TOOLS = ROOT / "tools"
 ASSETS = ROOT / "assets"
@@ -31,24 +33,24 @@ EMAIL = "tannerjamesmayfield@gmail.com"
 HERO = {
     "location": "PROVO, UTAH",
     "name": ["TANNER", "MAYFIELD"],
-    "tagline": ["Information Systems student using", "data and AI automation", "to meet business needs."],
+    "tagline": ["Information Systems student using", "data, software, and AI tools", "that meet business needs."],
 }
 
 # now.txt rows: (key, value). An empty key continues the row above.
 NOW = [
-    ("building", "Airline Intelligence"),
+    ("scheming", "BravOS"),
+    ("", "Sandbox for AI tools"),
+    ("building", "Polybot"),
+    ("", "AI language learning"),
+    ("dabbling", "Airline Intelligence"),
     ("", "ETL + delay-risk models"),
-    ("shipping", "Polybot and BravOS"),
-    ("teaching", "Spanish at the MTC"),
     ("studying", "IS at BYU, class of '28"),
     ("", "+ Spanish minor"),
-    ("learning", "Portuguese and ASL"),
+    ("teaching", "Spanish at the MTC"),
 ]
 
-INTRO = (
-    "I start with data because everything else depends on it. From there, I use AI and software "
-    "to take repetitive work off people's plates and make tools adapt to the people using them."
-)
+# Optional line of Markdown under the buttons. Leave empty to skip it.
+INTRO = ""
 
 BUTTONS = [
     ("site", "Portfolio", SITE),
@@ -60,21 +62,13 @@ BUTTONS = [
 WORK_HEAD = ("SELECTED WORK", "Four things I'm building")
 
 # Each terminal is (command, progress label, (result key, result value)).
+# Taglines wrap onto a second line when they need to.
 WORK = [
-    {
-        "slug": "airline",
-        "title": "Airline Intelligence",
-        "pill": "IN DEVELOPMENT",
-        "tagline": "Turning 631,970 messy flight records into data people trust",
-        "stack": ["Python", "PostgreSQL", "AWS", "Tableau"],
-        "url": f"https://github.com/{USER}/airlines-operations-intelligence-platform",
-        "term": ("$ load bts_jul_2026", "validating", ("airports", "352 · 12 airlines")),
-    },
     {
         "slug": "polybot",
         "title": "Polybot",
         "pill": "IN DEVELOPMENT",
-        "tagline": "A Chrome extension that turns the web into language practice",
+        "tagline": "A personalized language-learning app, with a Chrome extension that turns the web into language practice",
         "stack": ["JavaScript", "Chrome MV3", "Python"],
         "url": f"https://github.com/{USER}/PolyBot",
         "term": ('$ select "¿qué tal?"', "saving", ("added", "My Path · Spanish")),
@@ -83,41 +77,64 @@ WORK = [
         "slug": "bravos",
         "title": "BravOS",
         "pill": "IN DEVELOPMENT",
-        "tagline": "An adaptive AI workspace built around what you're doing",
+        "tagline": "An adaptive AI workspace built around what you're doing that automates daily organizational tasks",
         "stack": ["Claude Code", "Codex", "Spec-driven"],
         "url": f"{SITE}/projects/bravos/",
         "term": ("$ focus today", "assembling", ("open", "calendar + tasks")),
     },
     {
+        "slug": "airline",
+        "title": "Airline Intelligence",
+        "pill": "TINKERING",
+        "tagline": "Turning 631,970 messy flight records into data people trust, while I play with ETL and other tools for my own growth",
+        "stack": ["Python", "PostgreSQL", "AWS", "Tableau"],
+        "url": f"https://github.com/{USER}/airlines-operations-intelligence-platform",
+        "term": ("$ load bts_jul_2026", "validating", ("airports", "352 · 12 airlines")),
+    },
+    {
         "slug": "portfolio",
         "title": "tannermayfield.dev",
         "pill": "LIVE",
-        "tagline": "A data-driven portfolio with a lens that reorders itself",
+        "tagline": "My portfolio, soon with live previews so you can try my apps without leaving the page",
         "stack": ["Next.js", "TypeScript", "Tailwind"],
         "url": SITE,
-        "term": ("$ lens --focus ai", "reordering", ("live", "tannermayfield.dev")),
+        "term": ("$ preview polybot", "embedding", ("status", "coming soon")),
     },
 ]
 
 # Toolbox rows: (label, [(chip text, icon file or None)]).
 STACK = [
-    ("LANGUAGES", [("Python", "python-original"), ("SQL", None), ("JavaScript", "javascript-original"),
-                   ("TypeScript", "typescript-original"), ("HTML", "html5-original"), ("CSS", "css3-original")]),
-    ("WEB", [("React", "react-original"), ("Next.js", "si-nextdotjs"), ("Tailwind CSS", "tailwindcss-original"),
-             ("Node.js", "nodejs-original"), ("Chrome Extensions", "chrome-original")]),
     ("DATA", [("PostgreSQL", "postgresql-original"), ("pandas", "pandas-original"), ("scikit-learn", "scikitlearn-original"),
               ("Jupyter", "jupyter-original"), ("Tableau", "si-tableau")]),
+    ("DEV LANGUAGES", [("Python", "python-original"), ("JavaScript", "javascript-original"),
+                       ("TypeScript", "typescript-original"), ("HTML", "html5-original"), ("CSS", "css3-original")]),
+    ("FULL-STACKS", [("React", "react-original"), ("Next.js", "si-nextdotjs"), ("Tailwind CSS", "tailwindcss-original"),
+                     ("Node.js", "nodejs-original"), ("Supabase", "supabase-original")]),
     ("CLOUD & TOOLS", [("AWS", "amazonwebservices-original-wordmark"), ("Git", "git-original"),
-                       ("GitHub", "github-original"), ("Playwright", "playwright-original"),
-                       ("Excel", None)]),
-    ("AI WORKFLOW", [("Claude Code", "si-claude"), ("Codex", "si-openai"), ("Spec-driven development", None),
-                     ("Agentic workflows", None)]),
+                       ("GitHub", "github-original"), ("Microsoft Office Suite", "si-microsoftoffice")]),
 ]
+
+ABOUT_HEAD = ("ABOUT ME", "Beyond the code")
+
+# Hobbies cycle in this order. Each has an ASCII scene in tools/ascii_scenes.py under the same key.
+HOBBIES = [
+    ("baseball", "Baseball",
+     "I played all through high school on various travel teams, and I'm a die-hard Atlanta Braves fan."),
+    ("basketball", "Basketball",
+     "My favorite pastime with my friends for as long as I can remember."),
+    ("travel", "Travel",
+     "As a kid, traveling with my family was how we connected. Now my wife and I travel as much as our schedule allows."),
+    ("bowling", "Bowling",
+     "Humbly part of the 200 club at the BYU bowling alley. I got the score on my first try, and now I'm going for 300."),
+    ("golf", "Golf",
+     "As a kid I thought golf was boring. Now that I'm older... golf is still boring, but in a relaxing way I enjoy with friends and family."),
+]
+HOBBY_SECONDS = 11  # how long each hobby stays on screen
 
 FOOTER = {
     "label": "CONTACT",
     "title": "Let’s build something.",
-    "sub": "Looking for software engineering, AI, and full-stack internships. Email is fastest.",
+    "sub": "Looking for internships in data, full-stack development, and AI automation. Email is fastest.",
 }
 
 # --------------------------------------------------------------------------
@@ -126,16 +143,16 @@ FOOTER = {
 
 THEMES = {
     "dark": dict(bg="#1A1B26", ink="#C0CAF5", muted="#A9B1D6", faint="#949EC8", accent="#E0AF68",
-                 panel="#16161E", head="#24283B", alt="#292B39", onacc="#1A1B26", key="#E0AF68",
+                 panel="#16161E", head="#24283B", alt="#292B39", onacc="#1A1B26", key="#E0AF68", pop="#E0AF68",
                  grid="rgba(192,202,245,0.07)", glow="rgba(192,202,245,0.05)"),
     "light": dict(bg="#F7F5EE", ink="#161616", muted="rgba(22,22,22,0.62)", faint="rgba(22,22,22,0.45)",
-                  accent="#FACC00", panel="#FFFFFF", head="#FDF7C4", alt="#FDF7C4", onacc="#161616", key="#161616",
+                  accent="#FACC00", panel="#FFFFFF", head="#FDF7C4", alt="#FDF7C4", onacc="#161616", key="#161616", pop="#E4572E",
                   grid="rgba(22,22,22,0.07)", glow="rgba(255,255,255,0.8)"),
 }
 
 # Icons that are black/monochrome and need recoloring on dark backgrounds.
-DARK_ON_DARK = {"si-nextdotjs", "github-original", "si-openai", "pandas-original"}
-BRAND_FILL = {"si-tableau": "#E97627", "si-claude": "#D97757", "si-openai": "#161616", "si-nextdotjs": "#161616"}
+DARK_ON_DARK = {"si-nextdotjs", "github-original", "pandas-original"}
+BRAND_FILL = {"si-tableau": "#E97627", "si-nextdotjs": "#161616", "si-microsoftoffice": "#D83B01"}
 
 # --------------------------------------------------------------------------
 # Fonts: instance the variable fonts per weight, measure, subset, embed.
@@ -237,6 +254,19 @@ class Svg:
             f'role="img" aria-labelledby="t">\n<title id="t">{esc(self.title)}</title>\n'
             f'<defs>{"".join(self.defs)}</defs>\n<style>\n{css}\n</style>\n' + "\n".join(self.body) + "\n</svg>\n"
         )
+
+
+def wrap(text, width, fam="G", weight=400, size=14):
+    """Greedy word wrap using real glyph widths."""
+    lines, cur = [], ""
+    for word in text.split():
+        trial = f"{cur} {word}".strip()
+        if cur and measure(trial, fam, weight, size) > width:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = trial
+    return lines + [cur]
 
 
 def card(svg, w, h, fill, grid=True, r=14, off=6):
@@ -348,7 +378,9 @@ def work_head(t):
 def work_row(t, i, p):
     cmd, label, (rk, rv) = p["term"]
     title = f"{i + 1:02d} {p['title']}: {p['tagline']}. {p['pill'].capitalize()}. Built with {', '.join(p['stack'])}."
-    svg = Svg(840, 124, title, t)
+    tag = wrap(p["tagline"], 428)
+    extra_h = 19 * (len(tag) - 1)
+    svg = Svg(840, 124 + extra_h, title, t)
     svg.css.append("@keyframes out{0%,72%,100%{transform:translate(0,0)}84%{transform:translate(3px,-3px)}}")
     b = svg.body
     b.append(svg.text(4, 76, f"{i + 1:02d}", weight=700, size=54, fill="none", extra=f'stroke="{t["ink"]}" stroke-width="1.3"'))
@@ -357,10 +389,11 @@ def work_row(t, i, p):
     pw = measure(p["pill"], weight=700, size=9.5, ls=0.08) + 20
     b.append(f'<rect x="{px:.1f}" y="30" width="{pw:.1f}" height="20" rx="10" fill="{t["accent"]}" stroke="{t["ink"]}" stroke-width="1.5"/>')
     b.append(svg.text(px + 10, 43.6, p["pill"], weight=700, size=9.5, fill=t["onacc"], ls=0.08))
-    b.append(svg.text(104, 74, p["tagline"], weight=400, size=14, fill=t["muted"]))
-    b.append(svg.text(104, 100, "  ·  ".join(s.upper() for s in p["stack"]), size=10, fill=t["faint"], ls=0.08))
+    for j, line in enumerate(tag):
+        b.append(svg.text(104, 74 + 19 * j, line, weight=400, size=14, fill=t["muted"]))
+    b.append(svg.text(104, 100 + extra_h, "  ·  ".join(s.upper() for s in p["stack"]), size=10, fill=t["faint"], ls=0.08))
     b.append(f'<g style="animation:out 3s ease-in-out infinite">{arrow_up_right(822, 40, t["ink"])}</g>')
-    b.append(f'<line x1="4" y1="122.5" x2="836" y2="122.5" stroke="{t["faint"]}" stroke-width="1" stroke-opacity="0.6"/>')
+    b.append(f'<line x1="4" y1="{122.5 + extra_h}" x2="836" y2="{122.5 + extra_h}" stroke="{t["faint"]}" stroke-width="1" stroke-opacity="0.6"/>')
 
     # Looping mini-terminal: type the command, run a progress bar, print a result.
     cycle, cw, tx = 10, measure("a", "M", 400, 12), 548
@@ -387,7 +420,7 @@ def _icon(name, t):
     raw = (TOOLS / "icons" / f"{name}.svg").read_text(encoding="utf-8")
     if name in BRAND_FILL:
         fill = t["ink"] if name in DARK_ON_DARK and t["ink"] != "#161616" else BRAND_FILL[name]
-        raw = raw.replace("<svg ", f'<svg fill="{fill}" ', 1)
+        raw = raw.replace("<svg ", f'<svg fill="{fill}" ', 1).replace("currentColor", fill)
     if "amazonwebservices" in name:
         raw = raw.replace("#252f3e", t["ink"] if t["ink"] != "#161616" else "#252f3e")
     return "data:image/svg+xml;base64," + base64.b64encode(raw.encode()).decode()
@@ -425,20 +458,147 @@ def stack(t):
     return svg
 
 
+# --------------------------------------------------------------------------
+# "Beyond the code": hobbies cycle on the left, an ASCII scene plays on the right.
+# --------------------------------------------------------------------------
+
+PANEL = dict(x=400, y=112, w=392, h=214)
+GRID_X, GRID_Y, LINE_H = PANEL["x"] + 16, PANEL["y"] + 52, 15
+
+
+def _kf(svg, body):
+    """Register a keyframes body once per SVG and return its name."""
+    names = svg.__dict__.setdefault("kf_names", {})
+    if body not in names:
+        names[body] = f"a{len(names)}"
+        svg.css.append(f"@keyframes {names[body]}{{{body}}}")
+    return names[body]
+
+
+def _visibility(windows, period):
+    """step-end opacity keyframes that are 1 inside the given [t0, t1) windows (seconds)."""
+    def on(t):
+        return int(any(a <= t < b for a, b in windows))
+    cuts = sorted({0.0, *(a for a, _ in windows), *(b for _, b in windows)})
+    body = "".join(f"{100 * c / period:.3f}%{{opacity:{on(c)}}}" for c in cuts if c < period)
+    return body + f"100%{{opacity:{on(period - 1e-6)}}}"
+
+
+def _block(svg, col, row, lines, fill):
+    cw = measure("a", "M", 400, 12)
+    out = []
+    for i, line in enumerate(lines):
+        body = line.lstrip(" ")
+        if body.strip():
+            x = GRID_X + (col + len(line) - len(body)) * cw
+            out.append(svg.text(x, GRID_Y + (row + i) * LINE_H, body.rstrip(), "M", 400, 12, fill=fill))
+    return "".join(out)
+
+
+def _frames(svg, period, fs, fill, origin=(0, 0)):
+    out = []
+    for f in fs:
+        col, row, lines, t0, t1 = f if len(f) == 5 else (*origin, *f)
+        cls = ' class="f0"' if t0 == 0 else ""
+        name = _kf(svg, _visibility([(t0, t1)], period))
+        out.append(f'<g{cls} style="opacity:0;animation:{name} {period}s step-end infinite">'
+                   f'{_block(svg, col, row, lines, fill)}</g>')
+    return "".join(out)
+
+
+def _scene(svg, scene):
+    t, period, cw = svg.t, scene["period"], measure("a", "M", 400, 12)
+    out = []
+    for item in scene["items"]:
+        fill = t[item["color"]]
+        if item["kind"] == "static":
+            out.append(_block(svg, item["col"], item["row"], item["lines"], fill))
+        elif item["kind"] == "frames":
+            out.append(_frames(svg, period, item["frames"], fill))
+        else:
+            lines = item["lines"]
+            framed = isinstance(lines[0], tuple)
+            content = _frames(svg, period, lines, fill) if framed else _block(svg, 0, 0, lines, fill)
+            path = sorted(item["path"])
+            if path[0][0] > 0:
+                path.insert(0, (0, *path[0][1:]))
+            if path[-1][0] < period:
+                path.append((period, *path[-1][1:]))
+            body = "".join(f"{100 * tt / period:.3f}%{{transform:translate({c * cw:.1f}px,{r * LINE_H:.1f}px)}}"
+                           for tt, c, r in path)
+            g = f'<g style="animation:{_kf(svg, body)} {period}s linear infinite">{content}</g>'
+            if item["show"]:
+                vis = _kf(svg, _visibility(item["show"], period))
+                g = f'<g style="opacity:0;animation:{vis} {period}s step-end infinite">{g}</g>'
+            out.append(f'<g class="mv">{g}</g>')
+    return "".join(out)
+
+
+def about(t):
+    assert ord(BALL) in _instance("M", 400)[1].getBestCmap(), "ball glyph missing from the mono font"
+    label, heading = ABOUT_HEAD
+    n, T = len(HOBBIES), HOBBY_SECONDS
+    cycle = n * T
+    title = f"{heading}: " + " ".join(f"{name}: {desc}" for _, name, desc in HOBBIES) + \
+        " Each hobby plays as a looping ASCII animation."
+    svg = Svg(840, 362, title, t)
+    svg.css += ["@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}",
+                "@media (prefers-reduced-motion: reduce){.hob{opacity:0!important}.h0,.f0{opacity:1!important}.mv{display:none}}"]
+    card(svg, 830, 350, t["bg"])
+    P = PANEL
+    svg.defs.append(f'<clipPath id="pc"><rect x="{P["x"] + 1}" y="{P["y"] + 33}" '
+                    f'width="{P["w"] - 2}" height="{P["h"] - 34}"/></clipPath>')
+    b = svg.body
+    b += [svg.text(40, 54, label, size=11, fill=t["muted"], ls=0.16),
+          svg.text(40, 88, heading, weight=700, size=28, ls=-0.01)]
+
+    # Screen frame, same chrome as the now.txt window.
+    x, y, w, h = P["x"], P["y"], P["w"], P["h"]
+    b.append(f'<rect x="{x + 6}" y="{y + 6}" width="{w}" height="{h}" rx="14" fill="{t["ink"]}"/>'
+             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="14" fill="{t["panel"]}" stroke="{t["ink"]}" stroke-width="2"/>'
+             f'<path d="M{x} {y + 32}V{y + 14}a14 14 0 0 1 14-14h{w - 28}a14 14 0 0 1 14 14V{y + 32}z" '
+             f'fill="{t["head"]}" stroke="{t["ink"]}" stroke-width="2"/>'
+             + "".join(f'<circle cx="{x + 18 + i * 15}" cy="{y + 16}" r="4.2" fill="none" stroke="{t["ink"]}" '
+                       f'stroke-width="1.6"/>' for i in range(3)))
+
+    # Progress bar restarts with every hobby (its loop length equals one hobby's screen time).
+    b.append(f'<rect x="120" y="311" width="252" height="6" rx="3" fill="{t["faint"]}" opacity="0.35"/>'
+             f'<rect x="120" y="311" width="252" height="6" rx="3" fill="{t["accent"]}" '
+             f'style="transform-box:fill-box;transform-origin:left;animation:fill {T}s linear infinite"/>')
+
+    for i, (key, name, desc) in enumerate(HOBBIES):
+        vis = _kf(svg, _visibility([(i * T, (i + 1) * T)], cycle))
+        parts = [svg.text(40, 150, f"{i + 1:02d} / {n:02d}", size=11, fill=t["muted"], ls=0.16),
+                 svg.text(40, 186, name, weight=700, size=26, ls=-0.01)]
+        parts += [svg.text(40, 218 + 22 * j, line, weight=400, size=15, fill=t["muted"])
+                  for j, line in enumerate(wrap(desc, 330, size=15))]
+        parts += [f'<circle cx="{44 + 14 * k}" cy="314" r="4" fill="{t["accent"] if k == i else "none"}" '
+                  f'stroke="{t["ink"]}" stroke-width="1.4"/>' for k in range(n)]
+        parts.append(svg.text(x + 70, y + 20.5, SCENES[key]["label"], size=12.5, fill=t["muted"]))
+        parts.append(f'<g clip-path="url(#pc)">{_scene(svg, SCENES[key])}</g>')
+        b.append(f'<g class="hob h{i}" style="opacity:0;animation:{vis} {cycle}s step-end infinite">{"".join(parts)}</g>')
+    return svg
+
+
 def footer(t):
+    """Contact card; everything is centred on the card face (x 2..832, y 2..196), not counting the shadow."""
     f = FOOTER
     svg = Svg(840, 204, f"{f['title']} {f['sub']} Email {EMAIL}.", t)
     svg.css.append("@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}")
     card(svg, 830, 194, t["alt"], grid=False)
-    b = svg.body
-    b += [svg.text(40, 54, f["label"], size=11, fill=t["muted"], ls=0.16),
-          svg.text(40, 96, f["title"], weight=700, size=34, ls=-0.02),
-          svg.text(40, 124, f["sub"], weight=400, size=14, fill=t["muted"]),
-          f'<line x1="40" y1="146" x2="792" y2="146" stroke="{t["faint"]}" stroke-width="1.5" stroke-dasharray="2 7" stroke-linecap="round"/>']
+    cx, b = 417, svg.body
+    # Block from label cap-top (y 46) to mail baseline (y 162) is 116px tall; the face centre is y 99.
+    top = 99 - 127 / 2  # block runs from the label's cap height (top) to the cursor's bottom (top + 127)
+    b += [svg.text(cx, top + 8, f["label"], size=11, fill=t["muted"], ls=0.16, anchor="middle"),
+          svg.text(cx, top + 50, f["title"], weight=700, size=34, ls=-0.02, anchor="middle"),
+          svg.text(cx, top + 78, f["sub"], weight=400, size=14, fill=t["muted"], anchor="middle"),
+          f'<line x1="{cx - 300}" y1="{top + 98}" x2="{cx + 300}" y2="{top + 98}" stroke="{t["faint"]}" stroke-width="1.5" '
+          f'stroke-dasharray="2 7" stroke-linecap="round"/>']
     prompt = "$ mail "
-    b.append(svg.spans(40, 174, [(prompt, t["faint"]), (EMAIL, t["ink"])], size=13))
-    cx = 40 + measure(prompt + EMAIL, "M", 400, 13) + 4
-    b.append(f'<rect x="{cx:.1f}" y="162" width="8" height="15" fill="{t["accent"]}" stroke="{t["ink"]}" stroke-width="1" '
+    w = measure(prompt + EMAIL, "M", 400, 13) + 12
+    x = cx - w / 2
+    b.append(svg.spans(x, top + 124, [(prompt, t["faint"]), (EMAIL, t["ink"])], size=13))
+    b.append(f'<rect x="{x + w - 8:.1f}" y="{top + 112}" width="8" height="15" fill="{t["accent"]}" stroke="{t["ink"]}" stroke-width="1" '
              f'style="animation:blink 1.1s step-end infinite"/>')
     return svg
 
@@ -455,7 +615,7 @@ def pic(name, alt, width='width="100%"'):
 
 def build():
     ASSETS.mkdir(exist_ok=True)
-    cards = {"hero": hero, "work-head": work_head, "stack": stack, "footer": footer}
+    cards = {"hero": hero, "work-head": work_head, "stack": stack, "about": about, "footer": footer}
     for i, p in enumerate(WORK):
         cards[f"work-{p['slug']}"] = lambda t, i=i, p=p: work_row(t, i, p)
     for slug, label, _ in BUTTONS:
@@ -475,12 +635,11 @@ def build():
     work = "\n".join(
         '<a href="{}">{}</a>'.format(p["url"], pic(f"work-{p['slug']}", titles[f"work-{p['slug']}"])) for p in WORK
     )
+    intro = f"\n{INTRO}\n" if INTRO else ""
     readme = f"""{pic("hero", titles["hero"])}
 
 {btns}
-
-{INTRO}
-
+{intro}
 <br>
 
 {pic("work-head", titles["work-head"])}
@@ -489,6 +648,10 @@ def build():
 <br>
 
 {pic("stack", titles["stack"])}
+
+<br>
+
+{pic("about", titles["about"])}
 
 <br><br>
 
