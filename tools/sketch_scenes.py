@@ -163,6 +163,31 @@ class Sketch:
         return self.g(*content, tr=tr, show=show, ease=ease)
 
 
+def reach(base, target, l1, l2, elbow_out, prev=None):
+    """Two-bone IK: (upper, lower) angles that put a limb's tip on `target`, elbow bending outward.
+
+    elbow_out is +1 to keep the elbow on the right of the shoulder-hand line, -1 for the left.
+    `prev` is the previous upper angle, used to keep rotations continuous (no 360-degree spins).
+    """
+    bx, by = base
+    vx, vy = target[0] - bx, target[1] - by
+    d = min(max(math.hypot(vx, vy), abs(l1 - l2) + 0.5), l1 + l2 - 0.5)
+    th = math.atan2(-vx, vy)
+    alpha = math.acos((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))
+    best = None
+    for sgn in (1, -1):
+        t1 = th + sgn * alpha
+        ex, ey = bx - math.sin(t1) * l1, by + math.cos(t1) * l1
+        t2 = math.atan2(-(target[0] - ex), target[1] - ey)
+        a2 = (math.degrees(t2 - t1) + 180) % 360 - 180
+        if best is None or (ex - best[0]) * elbow_out > 0:
+            best = (ex, math.degrees(t1), a2)
+    a1 = best[1]
+    if prev is not None:
+        a1 += 360 * round((prev - a1) / 360)
+    return a1, best[2]
+
+
 def walk_frames(t0, t1, step, a, offset=0):
     """Alternating swing angles for a walk or shuffle."""
     out, k = [], offset
@@ -292,16 +317,25 @@ def _pitcher(S):
                     (7.4, tf(r=3, px=px, py=-168)), (8.0, tf(r=8, sy=0.93, px=px, py=-168)),
                     (8.5, tf(r=14, sy=0.86, px=px, py=-168)), (16, tf(r=14, sy=0.86, px=px, py=-168))])
     shadow = S.hatch(ell(px, -4, 70, 10), 3)
+    # Hidden once the camera has pushed in past him, so his shoulder doesn't hang into the plate shot.
     return S.g(shadow, l_leg, r_leg, upper,
-               tr=[(0, tf()), (7.0, tf()), (7.7, tf(y=-14, sx=0.97, px=px)), (8.4, tf(x=8, y=-22, sx=0.95, px=px))])
+               tr=[(0, tf()), (7.0, tf()), (7.7, tf(y=-14, sx=0.97, px=px)), (8.4, tf(x=8, y=-22, sx=0.95, px=px))],
+               show=[(0, 8.5)])
 
 
 def baseball(S):
     w = []
-    crowd = "".join(f"M{-380 + i * 10 + (row % 2) * 5 + rnd(i * 7 + row) * 3:.1f} {-306 + row * 11 + rnd(i + row * 13) * 2:.1f}"
+    crowd = "".join(f"M{-380 + i * 10 + (row % 2) * 5 + rnd(i * 7 + row) * 3:.1f} {-336 + row * 11 + rnd(i + row * 13) * 2:.1f}"
                     f"a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" for row in range(4) for i in range(86))
-    w += [S.hatch("M-400 -330H480V-262H-400Z", 3, op=0.55), S.line(crowd, 0.9, op=0.75),
-          S.shape("M-400 -264H480V-252H-400Z"), S.hatch("M-400 -264H480V-252H-400Z", 2)]
+    wall = "M-400 -294H480V-252H-400Z"
+    tomahawk = ("M2 -268.5L80 -275"  # handle, sweeping up under the script
+                "M2 -268.5l-6 -3.5l1 6.5z"  # blade
+                "M74 -274.5l4 -3M77 -275l4 -3M74 -274.5l4 3")  # feathers
+    w += [S.hatch("M-400 -360H480V-294H-400Z", 3, op=0.55), S.line(crowd, 0.9, op=0.75),
+          S.shape(wall), S.hatch("M-400 -294H480V-289H-400ZM-400 -257H480V-252H-400Z", 1.6),
+          S.line("M-400 -289H480M-400 -257H480", 0.8, op=0.6),
+          S.text(42, -276, "Braves", 17, 400, fill=S.pop, fam="S"),
+          S.line(tomahawk, 1.3, color=S.pop)]
     w += [S.line("".join(f"M-400 {y}H480" for y in range(-240, -30, 16)), 1, op=0.18, dash="10 8")]
     w += [S.hatch(ell(40, -206, 125, 22), 3.2, op=0.7), S.line(ell(40, -206, 125, 22), 1, op=0.5),
           S.line("M40 -207L-360 -130M40 -207L440 -130", 1.2, op=0.6),
@@ -309,19 +343,19 @@ def baseball(S):
           S.line("M6 -213H28V-200H4ZM52 -213H74L76 -200H54Z", 0.9, op=0.7),
           S.shape("M33 -208H47L48 -206L40 -203L32 -206Z", w=1.0),
           S.line(ell(-90, 0, 210, 36), 1.2, op=0.5, dash="6 6"), S.shape("M-112 -6H-68V-1H-112Z")]
-    w += [S.place(46, -210, 0.45, _umpire(S, 0.5)), S.place(40, -203, 0.42, _catcher(S, 0.5)),
+    w += [S.place(42, -219, 0.43, _umpire(S, 0.5)), S.place(40, -212, 0.41, _catcher(S, 0.5)),
           S.place(80, -205, 0.5, _batter(S, 0.5))]
     w.append(_pitcher(S))
 
     spin = S.g(_baseball_ball(S, 7), loops=[S.loop("transform", [(0, "rotate(0deg)"), (0.12, "rotate(360deg)")], 0.12)])
-    pitch = [(7.95, -36, -382, 1.0), (8.15, -6, -332, 0.62), (8.35, 19, -287, 0.42), (8.5, 33, -255, 0.33),
-             (8.62, 40, -238, 0.28), (8.72, 42.5, -224, 0.24)]
+    pitch = [(7.95, -36, -382, 1.0), (8.15, -6, -334, 0.62), (8.35, 19, -292, 0.42), (8.5, 33, -262, 0.33),
+             (8.62, 40, -246, 0.28), (8.72, 42.5, -232, 0.24)]
     w.append(S.mover(pitch, spin, show=[(7.95, 8.72)]))
-    throw = arc_path(10.28, 10.9, (31, -243), (330, -150), 70, 0.24, 0.5)
+    throw = arc_path(10.28, 10.9, (32, -252), (330, -150), 70, 0.24, 0.5)
     w.append(S.mover(throw, _baseball_ball(S, 7), show=[(10.28, 10.9)]))
 
     camera = [(0, cam(-88, -215, 1.9)), (3.4, cam(-86, -212, 1.96)), (6.4, cam(-60, -190, 0.95)),
-              (7.5, cam(-50, -200, 1.0)), (8.45, cam(58, -226, 3.2), "ease-in"), (16, cam(58, -226, 3.25))]
+              (7.5, cam(-50, -200, 1.0)), (8.45, cam(56, -236, 3.2), "ease-in"), (16, cam(56, -236, 3.25))]
     return S.g(*w, tr=camera)
 
 
@@ -343,18 +377,24 @@ def _player_back(S, num_side=True):
     shorts = "M-58 -212L58 -212L64 -118L8 -112L0 -136L-8 -112L-64 -118Z"
     tank = "M-46 -205C-50 -250 -54 -292 -40 -322L-26 -330C-14 -316 14 -316 26 -330L40 -322C54 -292 50 -250 46 -205Z"
 
+    held = [(8.0, 64, -190), (8.2, 54, -250), (8.35, 40, -300), (8.5, 24, -350), (8.7, 4, -405), (9.0, 2, -420)]
+    r_shot, l_shot, pr, pl = [], [], -18, 28
+    for t, bx, by in held:
+        a1, a2 = reach((48, -312), (bx + 13, by + 3), 58, 54, 1, pr)
+        b1, b2 = reach((-48, -312), (bx - 13, by + 3), 58, 54, -1, pl)
+        r_shot.append((t, a1, a2))
+        l_shot.append((t, b1, b2))
+        pr, pl = a1, b1
     pump = []
     t = 0.0
     while t < 8.0:
         pump.append((t, -18, 34))
         pump.append((t + 0.275, -22, 8))
         t += 0.55
-    r_arm = S.limb((48, -312), 58, 54, 20, 18, pump + [(8.0, -18, 30), (8.7, -168, 28), (9.0, -175, 20), (9.4, -150, 30),
-                                                         (10.2, -20, 20), (15, -12, 14)],
+    r_arm = S.limb((48, -312), 58, 54, 20, 18, pump + r_shot + [(9.4, pr + 12, 8), (10.2, -20, 20), (15, -12, 14)],
                    end=S.circ(48, -194, 9), k=k)
     l_arm = S.limb((-48, -312), 58, 54, 20, 18, [(0, 28, -20), (3.8, 28, -20), (4.5, 40, -30), (6.0, 20, -10),
-                                                 (8.0, 18, -30), (8.7, 165, -36), (9.0, 172, -20), (9.4, 150, -30),
-                                                 (10.2, 20, -10), (15, 12, -8)],
+                                                 (7.6, 24, -20)] + l_shot + [(9.4, pl - 20, -30), (10.2, 20, -10), (15, 12, -8)],
                    end=S.circ(-48, -194, 9), k=k)
     head = [S.tube("M0 -318L0 -338", 22, k), S.circ(0, -360, 24), S.hatch("M-24 -362C-24 -392 24 -392 24 -362Q0 -372 -24 -362Z", 2.4),
             S.line("M-24 -364q-6 4 0 10M24 -364q6 4 0 10", 1.4)]
@@ -424,10 +464,12 @@ def basketball(S):
         t += 0.55
     ball_art = S.circ(0, 0, 15, fill=S.bg) + S.line("M-15 0H15M0 -15V15M-10 -11Q-4 0 -10 11M10 -11Q4 0 10 11", 1.1, color=S.pop)
     dribble = S.mover(bounce + [(8.0, 64, -190, 1)], ball_art, show=[(0, 8.0)], ease="ease-in-out")
-    held = S.mover([(8.0, 64, -190, 1), (8.7, 4, -440, 1), (9.0, 2, -456, 1)], ball_art, show=[(8.0, 9.0)], ease="ease-out")
+    # Same path the hands are solved against in _player_back, so the ball stays in his hands.
+    held = S.mover([(8.0, 64, -190, 1), (8.2, 54, -250, 1), (8.35, 40, -300, 1), (8.5, 24, -350, 1), (8.7, 4, -405, 1),
+                    (9.0, 2, -420, 1)], ball_art, show=[(8.0, 9.0)])
     w.append(S.g(*_player_back(S), dribble, held, tr=body_tr))
 
-    flight = arc_path(9.0, 10.9, (82, -456), (40, -712), 320, 1.0, 0.5, steps=16, ease=lambda u: u)
+    flight = arc_path(9.0, 10.9, (82, -506), (40, -712), 280, 1.0, 0.5, steps=16, ease=lambda u: u)
     flight += [(11.2, 40, -665, 0.5), (11.6, 40, -600, 0.5)]
     w.append(S.mover(flight, ball_art, show=[(9.0, 11.6)]))
 
@@ -438,7 +480,7 @@ def basketball(S):
               tr=[(0, tf()), (10.95, tf()), (11.15, tf(sy=1.28, px=40, py=-705)), (11.35, tf(sy=0.9, r=3, px=40, py=-705)),
                   (11.6, tf(sy=1.06, r=-2, px=40, py=-705)), (12.0, tf())])
     w.append(net)
-    w.append(S.g(S.text(-30, -640, "swish.", 20, 500, fill=S.pop, anchor="end"), show=[(11.2, 13.5)]))
+    w.append(S.g(S.text(-26, -688, "swish.", 22, 500, fill=S.pop, anchor="end"), show=[(11.2, 13.5)]))
 
     camera = [(0, cam(0, -300, 1.7)), (2.3, cam(4, -296, 1.72)), (3.6, cam(15, -112, 1.35)), (6.0, cam(55, -110, 1.35)),
               (6.6, cam(70, -120, 1.3)), (8.0, cam(40, -330, 0.56)), (8.7, cam(40, -360, 0.6)),
@@ -458,31 +500,30 @@ def _cloud(S, x, y, s):
 
 
 def _car(S):
-    spokes = "".join(f"M0 0L{20 * math.cos(a):.2f} {20 * math.sin(a):.2f}" for a in [i * 2 * math.pi / 5 for i in range(5)])
-    spin = S.loop("transform", [(0, "rotate(0deg)"), (0.16, "rotate(360deg)")], 0.16)
-    wheel = (S.shape(ell(172, -40, 20, 40)) + S.line(ell(172, -40, 17, 36), 3.2, dash="5 6") +
-             f'<g transform="translate(172 -40) scale(0.5 1)">' +
-             S.g(S.circ(0, 0, 21), S.line(spokes, 2.2), S.circ(0, 0, 5), loops=[spin]) + "</g>")
-    tread = S.g(S.line(ell(172, -40, 17, 36), 3.2, dash="5 6"),
-                loops=[S.loop("stroke-dashoffset", [(0, "0"), (0.12, "-22")], 0.12)])
-    left_tire = S.shape("M-142 -46H-100V2H-142Z") + S.hatch("M-142 -46H-100V2H-142Z", 2.2) + \
-        S.g(S.line("M-142 -40H-100M-142 -28H-100M-142 -16H-100M-142 -4H-100", 1.2),
-            loops=[S.loop("transform", [(0, "translateY(-12px)"), (0.1, "translateY(0px)")], 0.1)])
+    """The car straight from behind: both rear tyres show their tread, which scrolls to read as spinning."""
+    def tire(x0, x1):
+        d = f"M{x0} -44Q{x0} -50 {x0 + 6} -50H{x1 - 6}Q{x1} -50 {x1} -44V-2Q{x1} 4 {x1 - 6} 4H{x0 + 6}Q{x0} 4 {x0} -2Z"
+        grooves = "".join(f"M{x0 + 4} {y}L{(x0 + x1) / 2:.0f} {y + 5}L{x1 - 4} {y}" for y in range(-56, 10, 9))
+        clip = f"tc{x0}"
+        S.svg.defs.append(f'<clipPath id="{clip}"><path d="{d}"/></clipPath>')
+        rolling = S.g(S.line(grooves, 1.3), loops=[S.loop("transform", [(0, "translateY(0px)"), (0.09, "translateY(9px)")], 0.09)])
+        return (S.shape(d) + S.hatch(d, 2.4, op=0.8) + f'<g clip-path="url(#{clip})">{rolling}</g>' +
+                S.line(f"M{x0 + 3} -40V-6M{x1 - 3} -40V-6", 1.0, op=0.7))
+
     puff = S.g(S.line(ell(-112, -30, 7, 5), 1.0, op=0.6),
                loops=[S.loop("transform", [(0, "translate(0px,0px) scale(1)"), (0.9, "translate(-14px,22px) scale(2.4)")], 0.9),
                       S.loop("opacity", [(0, "0.9"), (0.9, "0")], 0.9)])
     body = [
-        S.shape("M150 -120L192 -110L194 -40L150 -38Z"), S.hatch("M150 -120L192 -110L194 -40L150 -38Z", 3),
-        S.line("M150 -72Q172 -104 196 -70", 1.6),
         S.shape("M-110 -152L-84 -216L84 -216L110 -152Z"), S.hatch("M-96 -160L-76 -208L-40 -208L-70 -160Z", 3),
-        S.line("M84 -216L120 -208L150 -152", 1.6),
+        S.line("M-60 -212L-34 -212M34 -212L60 -212", 1.0, op=0.6),
         S.shape("M-150 -40L-150 -122C-150 -142 -140 -152 -120 -152L120 -152C140 -152 150 -142 150 -122L150 -40Z"),
         S.line("M-140 -132H140", 1.0, op=0.7),
         S.shape("M-146 -142H-96V-118H-146Z", fill=S.pop, op=0.85), S.shape("M96 -142H146V-118H96Z", fill=S.pop, op=0.85),
         S.shape("M-34 -104H34V-76H-34Z"), S.text(0, -84, "TM 22", 15, 700, fam="M"),
         S.shape("M-156 -62H156V-36H-156Z"), S.line("M-150 -50H150", 0.9, op=0.6),
     ]
-    return [left_tire, S.shape(ell(-112, -38, 5, 4)), puff, *body, wheel, tread]
+    shadow = S.hatch(ell(0, 2, 170, 10), 2.6, op=0.7)
+    return [shadow, tire(-146, -98), tire(98, 146), S.shape(ell(-112, -38, 5, 4)), puff, *body]
 
 
 def _plane(S):
@@ -539,8 +580,9 @@ def travel(S):
     w.append(S.g(*_plane(S), tr=[(10.3, tf(0, -690, sx=3.4)), (11.3, tf(-10, -960, sx=1.15), "ease-out"),
                                  (12.5, tf(40, -1088, sx=0.44)), (13, tf(54, -1118, sx=0.32))],
                  show=[(10.3, 99)], ease="linear"))
-    camera = [(0, cam(172, -40, 3.4)), (2.6, cam(172, -42, 3.5)), (4.8, cam(0, -130, 1.05)), (7.2, cam(0, -160, 1.05)),
-              (9.6, cam(0, -660, 1.0)), (10.8, cam(0, -1000, 1.0)), (13, cam(10, -1010, 1.02))]
+    # Open on both rear wheels and the plate, pull back as the car leaves, then one unbroken tilt up to the jet.
+    camera = [(0, cam(6, -72, 1.25)), (2.6, cam(6, -74, 1.28)), (4.8, cam(0, -130, 1.05)), (7.2, cam(0, -160, 1.05)),
+              (11.0, cam(0, -1000, 1.0)), (13, cam(10, -1010, 1.02))]
     return S.g(*w, tr=camera)
 
 
@@ -551,14 +593,20 @@ def travel(S):
 PIN = "M-9 0C-14 -20 -16 -40 -10 -58C-6 -66 -6 -72 -8 -80C-10 -92 -4 -100 0 -100C4 -100 10 -92 8 -80C6 -72 6 -66 10 -58C16 -40 14 -20 9 0Z"
 
 
-def _strike_panel(S, x, y, w, h, period, delay, tilt, cid):
-    loop = lambda frames, prop="transform", ease="linear": S.loop(prop, frames, period, ease, delay)
-    T = lambda f: f * period
+def _strike_panel(S, x, y, w, h, period, starts, tilt, cid):
+    """One taped-down photo of the pins. A strike plays at each time in `starts` (all on the scene clock)."""
+    def timeline(prop, initial, template, ease="linear"):
+        """Repeat a (phase, value[, ease]) template for every strike; returns an animation for S.g/inline style."""
+        frames = [(0, initial, "step-end")]
+        for st in starts:
+            frames += [(st + ph * period, v, *rest) for ph, v, *rest in template]
+        return S.keys(prop, frames, ease)
+
     unit = h * 0.3 / 100
     rows = [(1, h * 0.70, 1.0), (2, h * 0.655, 0.92), (3, h * 0.615, 0.85), (4, h * 0.58, 0.78)]
     cx = w / 2
-    pins = []
-    n = 0
+    pins, n = [], 0
+    still = "translate(0px,0px) rotate(0deg)"
     for count, py, sc in reversed(rows):
         for j in range(count):
             px = cx + (j - (count - 1) / 2) * w * 0.085 * sc
@@ -566,29 +614,31 @@ def _strike_panel(S, x, y, w, h, period, delay, tilt, cid):
             ang = (rnd(n * 3 + cid) - 0.5) * 520
             dx = (px - cx) * 2.2 + (rnd(n + cid * 7) - 0.5) * w * 0.4
             dy = -h * (0.25 + rnd(n * 5 + cid) * 0.35)
-            s = unit * sc
-            art = f'<g transform="translate({px:.1f} {py:.1f}) scale({s:.4f})">' + S.shape(PIN, w=1.4) + \
-                S.line("M-8 -74H8M-7 -70H7", 1.4, color=S.pop) + "</g>"
-            fly = loop([(0, "translate(0px,0px) rotate(0deg)"), (T(0.45), "translate(0px,0px) rotate(0deg)"),
-                        (T(0.62), f"translate({dx:.1f}px,{dy:.1f}px) rotate({ang:.0f}deg)"),
-                        (T(0.8), f"translate({dx * 1.2:.1f}px,{dy * 0.2:.1f}px) rotate({ang * 1.3:.0f}deg)"),
-                        (period, f"translate({dx * 1.2:.1f}px,{dy * 0.2:.1f}px) rotate({ang * 1.3:.0f}deg)")], "transform", "ease-out")
-            fade = loop([(0, "1"), (T(0.8), "1"), (T(0.82), "0"), (T(0.96), "0"), (T(0.98), "1")], "opacity")
+            art = f'<g transform="translate({px:.1f} {py:.1f}) scale({unit * sc:.4f})">' + S.shape(PIN, w=1.4) +                 S.line("M-8 -74H8M-7 -70H7", 1.4, color=S.pop) + "</g>"
+            fly = timeline("transform", still, [
+                (0, still), (0.45, still, "ease-out"),
+                (0.62, f"translate({dx:.1f}px,{dy:.1f}px) rotate({ang:.0f}deg)"),
+                (0.8, f"translate({dx * 1.2:.1f}px,{dy * 0.2:.1f}px) rotate({ang * 1.3:.0f}deg)", "step-end"),
+                (0.95, still)])
+            fade = timeline("opacity", "1", [(0.82, "0", "step-end"), (0.95, "1", "step-end")], "step-end")
             pins.append(f'<g style="transform-box:fill-box;transform-origin:50% 100%;animation:{fly},{fade}">{art}</g>')
-    ball = S.circ(0, 0, w * 0.07, fill=S.pop, w=1.6) + S.line(f"M{-w * 0.02:.1f} {-w * 0.025:.1f}h0.1M{w * 0.012:.1f} {-w * 0.03:.1f}h0.1M{-w * 0.002:.1f} {-w * 0.005:.1f}h0.1", 3.4)
-    roll = loop([(0, f"translate({w * 0.66:.1f}px,{h * 1.08:.1f}px) scale(1.3)"),
-                 (T(0.25), f"translate({w * 0.64:.1f}px,{h * 0.86:.1f}px) scale(0.95)"),
-                 (T(0.45), f"translate({w * 0.54:.1f}px,{h * 0.66:.1f}px) scale(0.55)"),
-                 (T(0.6), f"translate({w * 0.52:.1f}px,{h * 0.45:.1f}px) scale(0.4)"),
-                 (period, f"translate({w * 0.52:.1f}px,{h * 0.45:.1f}px) scale(0.4)")])
-    ball_show = loop([(0, "1"), (T(0.6), "0"), (T(0.97), "1")], "opacity")
-    burst = S.g(S.line(f"M{w * 0.47:.1f} {h * 0.6:.1f}l-14 -8M{w * 0.6:.1f} {h * 0.6:.1f}l14 -8M{w * 0.535:.1f} {h * 0.5:.1f}v-14", 2,
-                       color=S.pop), loops=[loop([(0, "0"), (T(0.45), "1"), (T(0.58), "0")], "opacity")])
-    mark = S.g(S.line(f"M{w - 34} 12l20 20m0 -20l-20 20", 3, color=S.pop),
-               loops=[loop([(0, "0"), (T(0.5), "1"), (T(0.9), "0")], "opacity")])
-    sweep = S.g(S.shape(f"M{w * 0.15:.1f} {h * 0.2:.1f}H{w * 0.85:.1f}V{h * 0.27:.1f}H{w * 0.15:.1f}Z"),
-                loops=[loop([(0, "translateY(-60px)"), (T(0.84), "translateY(-60px)"), (T(0.9), f"translateY({h * 0.42:.0f}px)"),
-                             (T(0.96), "translateY(-60px)")], "transform", "ease-in-out")])
+
+    start_pos = f"translate({w * 0.66:.1f}px,{h * 1.08:.1f}px) scale(1.3)"
+    roll = timeline("transform", start_pos, [
+        (0, start_pos), (0.25, f"translate({w * 0.64:.1f}px,{h * 0.86:.1f}px) scale(0.95)"),
+        (0.45, f"translate({w * 0.54:.1f}px,{h * 0.66:.1f}px) scale(0.55)"),
+        (0.6, f"translate({w * 0.52:.1f}px,{h * 0.45:.1f}px) scale(0.4)", "step-end"), (0.9, start_pos)])
+    ball_show = timeline("opacity", "0", [(0, "1", "step-end"), (0.6, "0", "step-end")], "step-end")
+    ball = S.circ(0, 0, w * 0.07, fill=S.pop, w=1.6) + S.line(
+        f"M{-w * 0.02:.1f} {-w * 0.025:.1f}h0.1M{w * 0.012:.1f} {-w * 0.03:.1f}h0.1M{-w * 0.002:.1f} {-w * 0.005:.1f}h0.1", 3.4)
+    burst = (f'<g style="opacity:0;animation:{timeline("opacity", "0", [(0.45, "1", "step-end"), (0.58, "0", "step-end")], "step-end")}">' +
+             S.line(f"M{w * 0.47:.1f} {h * 0.6:.1f}l-14 -8M{w * 0.6:.1f} {h * 0.6:.1f}l14 -8M{w * 0.535:.1f} {h * 0.5:.1f}v-14", 2,
+                    color=S.pop) + "</g>")
+    mark = (f'<g style="opacity:0;animation:{timeline("opacity", "0", [(0.5, "1", "step-end"), (0.9, "0", "step-end")], "step-end")}">' +
+            S.line(f"M{w - 34} 12l20 20m0 -20l-20 20", 3, color=S.pop) + "</g>")
+    up, down = "translateY(-60px)", f"translateY({h * 0.42:.0f}px)"
+    sweep = (f'<g style="animation:{timeline("transform", up, [(0.84, up, "ease-in-out"), (0.9, down, "ease-in-out"), (0.96, up)])}">' +
+             S.shape(f"M{w * 0.15:.1f} {h * 0.2:.1f}H{w * 0.85:.1f}V{h * 0.27:.1f}H{w * 0.15:.1f}Z") + "</g>")
     lane = (S.hatch(f"M0 0H{w}V{h * 0.42:.1f}H0Z", 2.6, op=0.8) +
             S.line(f"M{w * 0.05:.1f} {h}L{w * 0.32:.1f} {h * 0.6:.1f}M{w * 0.95:.1f} {h}L{w * 0.68:.1f} {h * 0.6:.1f}"
                    f"M0 {h * 0.58:.1f}H{w}", 1.3) +
@@ -602,10 +652,47 @@ def _strike_panel(S, x, y, w, h, period, delay, tilt, cid):
             S.shape(f"M3 3H{w + 3}V{h + 3}H3Z", fill=S.ink) + S.shape(f"M0 0H{w}V{h}H0Z") + inner + tape + "</g>")
 
 
+def _score_card(S, strikes):
+    """A paper score sheet: each strike from the photos lands an X; totals fill in once they're known."""
+    x0, y0, fw, f10 = 312, 36, 46, 86
+    out = [S.shape(f"M308 18H{x0 + 9 * fw + f10 + 8}V112H308Z", fill=S.ink), S.shape(f"M304 14H{x0 + 9 * fw + f10 + 4}V108H304Z")]
+    out.append(S.text(x0, 28, "BYU LANES", 9, 700, fill=S.faint, anchor="start", fam="M"))
+    out.append(S.text(x0 + 9 * fw + f10 - 2, 28, "T. MAYFIELD", 9, 700, fill=S.faint, anchor="end", fam="M"))
+    marks, totals = [], []
+    for k in range(10):
+        fx = x0 + k * fw
+        w = f10 if k == 9 else fw
+        out.append(S.line(f"M{fx} {y0}H{fx + w}V{y0 + 66}H{fx}Z", 1.3))
+        out.append(S.text(fx + 7, y0 + 13, str(k + 1), 9, 700, fill=S.faint, anchor="start", fam="M"))
+        boxes = [fx + w - 20 * (3 - j) for j in range(3)] if k == 9 else [fx + w - 20]
+        for j, bx in enumerate(boxes):
+            out.append(S.line(f"M{bx} {y0}V{y0 + 20}H{bx + 20}", 1.1))
+            idx = 9 + j if k == 9 else k
+            if idx < len(strikes):
+                t = strikes[idx]
+                marks.append(S.g(S.line(f"M{bx + 4} {y0 + 4}l12 12m0 -12l-12 12", 2.4, color=S.pop),
+                                 tr=[(t, tf(sx=1.8, px=bx + 10, py=y0 + 10)), (t + 0.25, tf(px=bx + 10, py=y0 + 10), "ease-out")],
+                                 show=[(t, 99)]))
+        known = strikes[min(k + 2, 11)] if min(k + 2, 11) < len(strikes) else None
+        if known is not None:
+            totals.append(S.g(S.text(fx + w / 2, y0 + 54, str(30 * (k + 1)), 15, 700, fam="M"), show=[(known + 0.15, 99)]))
+    if len(strikes) >= 12:
+        t = strikes[11] + 0.3
+        mid = x0 + (9 * fw + f10) / 2
+        totals.append(S.g(S.text(mid, 29, "PERFECT GAME!", 13, 700, fill=S.pop),
+                          tr=[(t, tf(sx=0.5, px=mid, py=25)), (t + 0.3, tf(px=mid, py=25), "ease-out")],
+                          show=[(t, 99)]))
+    return "".join(out + marks + totals)
+
+
 def bowling(S):
-    panels = [(298, 16, 262, 92, 2.6, 0.0, -1.2), (574, 12, 248, 124, 3.1, 1.1, 1.4),
-              (402, 124, 204, 214, 2.9, 0.6, 0.8), (622, 148, 198, 188, 2.3, 1.7, -1.5)]
-    return "".join(_strike_panel(S, *p, cid=i) for i, p in enumerate(panels))
+    period = 2.4
+    a_starts = [0.2 + period * k for k in range(6)]
+    b_starts = [1.4 + period * k for k in range(6)]
+    strikes = sorted(st + 0.45 * period for st in a_starts + b_starts)  # the moment each ball hits the pocket
+    return (_score_card(S, strikes) +
+            _strike_panel(S, 402, 124, 204, 214, period, a_starts, 0.8, 0) +
+            _strike_panel(S, 622, 148, 198, 188, period, b_starts, -1.5, 1))
 
 
 # =============================================================================
@@ -627,10 +714,18 @@ def golf(S):
                          S.shape(ell(x, y - 30 * s, 16 * s, 20 * s)) + S.hatch(ell(x + 3 * s, y - 26 * s, 12 * s, 14 * s), 2.6))
     w += [S.line("M-260 -40L22 -300M300 -40L62 -300", 1.4), S.hatch("M-700 80L-260 -40L22 -300L-700 -300Z", 3.4, op=0.3),
           S.hatch("M800 80L300 -40L62 -300L800 -300Z", 3.4, op=0.3), *reversed(trees)]
-    w += [S.line("".join(f"M{-150 + i * 34} -60L{24 + i * 1.2:.1f} -300" for i in range(10)), 0.8, op=0.2)]
-    w += [S.hatch(ell(18, -289, 7, 1.6), 0.8), S.line(ell(18, -289, 7, 1.6), 0.9),
-          S.shape(ell(44, -292, 30, 7)), S.line(ell(44, -292, 22, 4.6), 0.8, op=0.5, dash="3 3"),
+    w += [S.line("".join(f"M{-250 + i * 34} -40L{23 + i * 2.4:.1f} -300" for i in range(17)), 0.8, op=0.2)]
+    bunker = "M14 -285.2C12 -287.6 16 -289.4 21 -289C25 -288.8 27 -290.2 30.5 -289.4C33 -288.6 32 -286 28.5 -285.2C24 -284.4 17 -283.6 14 -285.2Z"
+    w += [S.shape(ell(44, -292, 30, 7)), S.line(ell(44, -292, 22, 4.6), 0.8, op=0.5, dash="3 3"),
           S.line(ell(44, -292, 13, 2.6), 0.8, op=0.4, dash="2 3"), S.shape(ell(45, -291.2, 1.5, 0.55), fill=S.ink, w=0.6)]
+    # The bunker guards the front left of the green, so it's drawn after (in front of) the green.
+    w += [S.shape(bunker), S.line("".join(f"M{16 + i * 1.5:.1f} {-286.6 + (i % 2) * 0.8:.1f}h0.05" for i in range(10)), 1.6, op=0.7),
+          S.line("M13.6 -285.6C15 -284 22 -283.6 28.5 -284.6", 0.8, op=0.6)]
+    # Clouds: big ones high up for the ball flight, small ones near the horizon behind the green.
+    sky = [_cloud(S, x, y, sc) for x, y, sc in [(-220, -400, 0.9), (140, -430, 1.1), (330, -370, 0.7), (-40, -470, 0.8),
+                                                 (-120, -330, 0.35), (210, -334, 0.3)]]
+    sky += [_cloud(S, x, y, sc) for x, y, sc in [(30, -306.2, 0.045), (60, -307.4, 0.035), (12, -308.6, 0.03)]]
+    w.insert(0, S.g(*sky, loops=[S.loop("transform", [(0, "translateX(0px)"), (15, "translateX(14px)")], 15, "linear")]))
     flag = S.g(S.shape("M45 -312L54 -309L45 -306Z", fill=S.pop, w=0.8),
                loops=[S.loop("transform", [(0, "translate(45px,0px) scale(1,1) translate(-45px,0px)"),
                                            (0.6, "translate(45px,0px) scale(0.7,1) translate(-45px,0px)"),
@@ -679,7 +774,7 @@ def golf(S):
     w.append(S.mover(flight + roll, ball_art, show=[(6.38, 13.02)]))
 
     # The camera rides forward with the swing and tracks the ball all the way to the green.
-    camera = [(0, cam(12, -160, 1.15)), (1.6, cam(6, -130, 1.25)), (5.4, cam(4, -128, 1.3)), (6.3, cam(4, -130, 1.32))]
+    camera = [(0, cam(12, -176, 1.12)), (1.6, cam(6, -130, 1.25)), (5.4, cam(4, -128, 1.3)), (6.3, cam(4, -130, 1.32))]
     for t, x, y, sc in flight[2::2]:
         u = (t - 6.38) / (9.9 - 6.38)
         camera.append((t, cam(x * (1 - u) + 41 * u, y * (1 - u * 0.35) + (-292) * u * 0.35, 1.4 + 4.8 * u ** 2)))

@@ -126,7 +126,7 @@ HOBBIES = [
     ("travel", "Travel",
      "As a kid, traveling with my family was how we connected. Now my wife and I travel as much as our schedule allows.", 13),
     ("bowling", "Bowling",
-     "Humbly part of the 200 club at the BYU bowling alley. I got the score on my first try, and now I'm going for 300.", 11),
+     "Humbly part of the 200 club at the BYU bowling alley. I got the score on my first try, and now I'm going for 300.", 16),
     ("golf", "Golf",
      "As a kid I thought golf was boring. Now that I'm older... golf is still boring, but in a relaxing way I enjoy with friends and family.", 15),
 ]
@@ -158,14 +158,17 @@ BRAND_FILL = {"si-tableau": "#E97627", "si-nextdotjs": "#161616", "si-microsofto
 # Fonts: instance the variable fonts per weight, measure, subset, embed.
 # --------------------------------------------------------------------------
 
-FONT_FILES = {"G": TOOLS / "fonts" / "SpaceGrotesk.ttf", "M": TOOLS / "fonts" / "JetBrainsMono.ttf"}
+FONT_FILES = {"G": TOOLS / "fonts" / "SpaceGrotesk.ttf", "M": TOOLS / "fonts" / "JetBrainsMono.ttf",
+              "S": TOOLS / "fonts" / "Yellowtail.ttf"}  # S: script, for the ballpark wordmark
 _instances: dict = {}
 
 
 def _instance(fam, weight):
     key = (fam, weight)
     if key not in _instances:
-        font = instancer.instantiateVariableFont(TTFont(FONT_FILES[fam]), {"wght": weight})
+        font = TTFont(FONT_FILES[fam])
+        if "fvar" in font:
+            font = instancer.instantiateVariableFont(font, {"wght": weight})
         buf = io.BytesIO()
         font.save(buf)
         _instances[key] = (buf.getvalue(), font)
