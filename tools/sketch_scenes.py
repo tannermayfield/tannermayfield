@@ -163,10 +163,10 @@ class Sketch:
         return self.g(*content, tr=tr, show=show, ease=ease)
 
 
-def reach(base, target, l1, l2, elbow_out, prev=None):
+def reach(base, target, l1, l2, elbow_out, prev=None, axis=0):
     """Two-bone IK: (upper, lower) angles that put a limb's tip on `target`, elbow bending outward.
 
-    elbow_out is +1 to keep the elbow on the right of the shoulder-hand line, -1 for the left.
+    elbow_out is +1 to put the elbow at the larger coordinate on `axis` (0 = x, right; 1 = y, below), -1 for smaller.
     `prev` is the previous upper angle, used to keep rotations continuous (no 360-degree spins).
     """
     bx, by = base
@@ -180,8 +180,9 @@ def reach(base, target, l1, l2, elbow_out, prev=None):
         ex, ey = bx - math.sin(t1) * l1, by + math.cos(t1) * l1
         t2 = math.atan2(-(target[0] - ex), target[1] - ey)
         a2 = (math.degrees(t2 - t1) + 180) % 360 - 180
-        if best is None or (ex - best[0]) * elbow_out > 0:
-            best = (ex, math.degrees(t1), a2)
+        e = (ex, ey)[axis]
+        if best is None or (e - best[0]) * elbow_out > 0:
+            best = (e, math.degrees(t1), a2)
     a1 = best[1]
     if prev is not None:
         a1 += 360 * round((prev - a1) / 360)
@@ -219,7 +220,7 @@ def _umpire(S, k):
         S.tube("M18 -78L28 -60L20 -44", 6.5, k), arm,
         S.circ(0, -92, 9.5), S.line("M-6 -98V-86M0 -99V-85M6 -98V-86M-8 -93H8M-7 -88H7", 0.9),
     ]
-    call = S.g(S.text(-46, -112, "STRIKE!", 15, fill=S.pop), show=[(8.95, 10.4)])
+    call = S.g(S.text(-28, -60, "STRIKE!", 15, fill=S.pop, anchor="end"), show=[(8.95, 10.4)])
     return S.g(*body, tr=[(0, tf()), (8.85, tf()), (9.05, tf(y=-6)), (10.6, tf())]) + call
 
 
@@ -241,16 +242,36 @@ def _catcher(S, k):
 
 
 def _batter(S, k):
-    bat = S.g(S.tube("M14 -88L14 -112", 3.6, k), S.tube("M14 -112L14 -140", 5.4, k), S.circ(14, -86, 2.4),
-              tr=[(0, tf(r=22, px=14, py=-88)), (8.45, tf(r=22, px=14, py=-88)),
-                  (8.58, tf(r=95, sy=0.9, px=14, py=-88), "ease-in"), (8.66, tf(r=178, sy=0.12, px=14, py=-88), "linear"),
-                  (8.73, tf(r=270, sy=1, px=14, py=-88), "linear"), (8.9, tf(r=330, sy=0.85, px=14, py=-88)),
-                  (9.4, tf(r=340, px=14, py=-88)), (9.9, tf(r=520, px=14, py=-88))])
-    arms = S.tube("M-6 -84L4 -74L14 -86", 6, k) + S.tube("M4 -84L11 -78L15 -88", 5.5, k)
-    head = S.g(S.circ(-3, -98, 9), S.shape("M-13 -99C-13 -112 7 -113 7 -100Z"), S.hatch("M-13 -99C-13 -112 7 -113 7 -100Z", 1.8),
-               S.line("M-13 -99L-20 -98", 1.4), tr=[(0, tf()), (9.4, tf()), (9.8, tf(r=-16, y=2, px=0, py=-90))])
+    """Right-handed batter seen from the mound: he faces the plate (left). Hands lead the swing; arms are solved to them."""
+    # Where the hands are on the handle over time (batter-local units; he is ~100 tall).
+    hands = [(0, 14, -88), (8.45, 14, -88), (8.55, 17, -90), (8.62, 10, -80), (8.68, 0, -74), (8.74, -8, -76),
+             (8.88, -12, -90), (9.2, -10, -94), (9.6, -6, -92), (10.0, -6, -92), (10.25, -15, -84), (10.7, -2, -64),
+             (16, -2, -64)]
+    lead, back, pl, pb = [], [], None, None
+    for t, hx, hy in hands:
+        a1, a2 = reach((-5, -84), (hx - 1, hy + 2), 11, 11, 1, pl, axis=1)
+        b1, b2 = reach((5, -84), (hx + 1, hy - 1), 11, 11, 1, pb, axis=1)
+        lead.append((t, a1, a2))
+        back.append((t, b1, b2))
+        pl, pb = a1, b1
+    bat_angle = {0: (22, 1), 8.45: (22, 1), 8.55: (28, 1), 8.62: (95, 0.9), 8.68: (178, 0.12), 8.74: (270, 1),
+                 8.88: (330, 0.85), 9.2: (340, 1), 9.6: (372, 1), 10.0: (380, 1), 10.25: (300, 1)}
+    bat_tr = []
+    for t, hx, hy in hands:
+        if t in bat_angle:
+            r, sy = bat_angle[t]
+            ease = "linear" if 8.6 < t < 8.75 else "ease-in-out"
+            bat_tr.append((t, tf(x=hx - 14, y=hy + 88, r=r, sy=sy, px=14, py=-88), ease))
+    bat_art = S.tube("M14 -88L14 -112", 3.6, k) + S.tube("M14 -112L14 -140", 5.4, k) + S.circ(14, -86, 2.4)
+    bat = S.g(bat_art, tr=bat_tr, show=[(0, 10.28)])
+    arms = (S.limb((-5, -84), 11, 11, 5.6, 5, lead, end=S.circ(-5, -62, 2.6), k=k) +
+            S.limb((5, -84), 11, 11, 5.6, 5, back, end=S.circ(5, -62, 2.6), k=k))
+    helmet = "M-13 -99C-13 -112 7 -114 8 -100L8 -94Q6 -91 3 -92L2 -88Q-2 -86 -4 -89L-5 -94Z"
+    head = S.g(S.circ(-3, -98, 9), S.shape(helmet), S.hatch(helmet, 1.8), S.line("M-13 -99L-17.5 -97.5", 1.6),
+               S.line("M-1 -94.5a1.6 1.6 0 1 0 0.1 0", 0.8), S.circ(0, -106, 0.9, w=0.6),
+               tr=[(0, tf()), (9.4, tf()), (9.8, tf(r=-16, y=2, px=0, py=-90))])
     upper = S.g(S.shape("M-10 -50C-14 -64 -14 -78 -8 -88L10 -86C14 -74 13 -60 9 -50Z"), S.line("M-10 -54H9", 1.0),
-                arms, head, bat,
+                head, arms, bat,
                 tr=[(0, tf()), (8.5, tf()), (8.7, tf(r=-12, px=0, py=-50)), (9.1, tf(r=-5, px=0, py=-50)),
                     (9.6, tf(r=8, px=0, py=-50))])
     walk = walk_frames(9.9, 16, 0.42, 16)
@@ -259,8 +280,12 @@ def _batter(S, k):
             S.g(S.tube("M6 -50L16 -28L20 0", 10, k),
                 tr=[(0, tf())] + [(t, tf(r=-a, px=6, py=-50)) for t, a in walk]))
     body = S.g(legs, upper, tr=[(0, tf()), (9.4, tf()), (9.9, tf(x=6, sx=-1, sy=1)), (16, tf(x=150, sx=-1, sy=1), "linear")])
-    grawlix = S.g(S.text(0, -124, "#@%&!", 16, fill=S.pop), tr=[(9.4, tf()), (16, tf(x=144), "linear")], show=[(9.8, 12.2)])
-    return body + grawlix
+    grawlix = S.g(S.text(26, -100, "#@%&!", 14, fill=S.pop, anchor="start"), tr=[(9.4, tf()), (16, tf(x=144), "linear")], show=[(9.8, 12.2)])
+    # The bat leaves his hands (he's turned around, so local -x is world right) and clatters away to the right.
+    toss_art = S.tube("M0 -26L0 0", 3.6, k) + S.tube("M0 0L0 26", 5.4, k)
+    toss = arc_path(10.28, 11.0, (30, -84), (122, -3), 34) + [(11.25, 130, -3, 1), (16, 130, -3, 1)]
+    thrown = S.mover(toss, toss_art, show=[(10.28, 99)], rot=lambda t: min(t - 10.28, 0.72) * 875)
+    return body + grawlix + thrown
 
 
 def _pitcher(S):
@@ -323,19 +348,45 @@ def _pitcher(S):
                show=[(0, 8.5)])
 
 
+BRAVES_RED, BRAVES_NAVY, BRAVES_GOLD = "#CE1141", "#13274F", "#EAAA00"
+
+
+def _braves_logo(S, x, y, width):
+    """Script wordmark with the tomahawk underneath, drawn in a 1200x630 artboard and scaled to `width`."""
+    sc = width / 840
+
+    def stroke(d, color, w):
+        return f'<path class="tb" d="{d}" fill="none" stroke="{color}" stroke-width="{w}"/>'
+
+    handle = "M492 432L896 388"  # runs under the script, rising into the head
+    head = ("M905 222C930 260 975 300 1000 350C1012 380 1012 420 1004 452C960 458 915 456 885 450"
+            "C872 410 870 360 880 320C886 280 895 250 905 222Z")
+    S.svg.used.setdefault(("S", 400), set()).update("Braves")
+    word = lambda extra: (f'<text x="175" y="372" font-family="S" font-weight="400" font-size="250" textLength="690" '
+                          f'lengthAdjust="spacingAndGlyphs" {extra}>Braves</text>')
+    parts = [
+        stroke(handle, S.ink, 64), f'<path class="tb" d="{head}" fill="{S.ink}" stroke="{S.ink}" stroke-width="22"/>',
+        stroke(handle, BRAVES_NAVY, 50), stroke(handle, BRAVES_RED, 34),
+        f'<path class="tb" d="{head}" fill="{BRAVES_RED}" stroke="{BRAVES_NAVY}" stroke-width="11"/>',
+        stroke("M915 300Q935 330 925 360M955 342Q975 380 960 420M906 398Q921 420 913 440M938 250Q946 270 942 290", BRAVES_NAVY, 5),
+        stroke("M537 414L543 442", BRAVES_GOLD, 7),
+        stroke("M770 388L782 414L794 385L806 412L818 383L830 410L842 380L854 406", BRAVES_GOLD, 7),
+        stroke("M868 384C898 362 940 378 962 406M868 406C902 392 936 402 954 426", BRAVES_GOLD, 7),
+        word(f'fill="none" stroke="{S.ink}" stroke-width="26" stroke-linejoin="round"'),
+        word(f'fill="{BRAVES_RED}" stroke="{BRAVES_NAVY}" stroke-width="12" stroke-linejoin="round" paint-order="stroke"'),
+    ]
+    return f'<g transform="translate({x - 175 * sc:.2f} {y - 222 * sc:.2f}) scale({sc:.4f})">' + "".join(parts) + "</g>"
+
+
 def baseball(S):
     w = []
     crowd = "".join(f"M{-380 + i * 10 + (row % 2) * 5 + rnd(i * 7 + row) * 3:.1f} {-336 + row * 11 + rnd(i + row * 13) * 2:.1f}"
                     f"a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" for row in range(4) for i in range(86))
     wall = "M-400 -294H480V-252H-400Z"
-    tomahawk = ("M2 -268.5L80 -275"  # handle, sweeping up under the script
-                "M2 -268.5l-6 -3.5l1 6.5z"  # blade
-                "M74 -274.5l4 -3M77 -275l4 -3M74 -274.5l4 3")  # feathers
     w += [S.hatch("M-400 -360H480V-294H-400Z", 3, op=0.55), S.line(crowd, 0.9, op=0.75),
           S.shape(wall), S.hatch("M-400 -294H480V-289H-400ZM-400 -257H480V-252H-400Z", 1.6),
           S.line("M-400 -289H480M-400 -257H480", 0.8, op=0.6),
-          S.text(42, -276, "Braves", 17, 400, fill=S.pop, fam="S"),
-          S.line(tomahawk, 1.3, color=S.pop)]
+          _braves_logo(S, 12, -289, 84)]
     w += [S.line("".join(f"M-400 {y}H480" for y in range(-240, -30, 16)), 1, op=0.18, dash="10 8")]
     w += [S.hatch(ell(40, -206, 125, 22), 3.2, op=0.7), S.line(ell(40, -206, 125, 22), 1, op=0.5),
           S.line("M40 -207L-360 -130M40 -207L440 -130", 1.2, op=0.6),
@@ -425,16 +476,46 @@ def _defender(S):
                    (7.4, tf(x=40)), (8.5, tf(x=58)), (8.9, tf(x=58, y=-46)), (9.5, tf(x=58)), (15, tf(x=58))])
 
 
+def _court(S):
+    """A regulation half court (feet) projected through a pinhole camera standing just behind the top of the arc.
+
+    Court coordinates: X across (0 = basket), Y out from the baseline. The camera sits at Y = 36, about 8.8 ft up,
+    looking at the basket, tuned so the shooter's feet land at world y 0 and the baseline at y -560.
+    """
+    cam_y, focal, height, horizon = 36.0, 512.0, 8.83, -685.5
+
+    def at(x, y):
+        d = cam_y - y
+        return 40 + focal * x / d, horizon + focal * height / d
+
+    def poly(points):
+        return "M" + "L".join(f"{px:.1f} {py:.1f}" for px, py in (at(x, y) for x, y in points))
+
+    def arc(cx, cy, r, a0, a1, n=48):
+        return [(cx + r * math.sin(a), cy + r * math.cos(a))
+                for a in (math.radians(a0 + (a1 - a0) * i / n) for i in range(n + 1))]
+
+    corner = math.degrees(math.asin(22 / 23.75))
+    three = [(-22, 0)] + arc(0, 5.25, 23.75, -corner, corner) + [(22, 0)]
+    boards = "".join(poly([(x, 0), (x, 33)]) for x in [i * 1.5 for i in range(-16, 17)])
+    return "".join([
+        S.line(boards, 0.8, op=0.13),
+        S.line(poly([(-25, 33.4), (-25, 0), (25, 0), (25, 33.4)]), 2.2),          # sidelines and baseline
+        S.line(poly(three), 2.4),                                                   # corner threes + the arc
+        S.line(poly([(-8, 0), (-8, 19), (8, 19), (8, 0)]), 1.6),                    # the lane
+        S.line(poly(arc(0, 19, 6, -90, 90)), 1.6),                                  # free-throw circle, near half
+        S.line(poly(arc(0, 19, 6, 90, 270)), 1.2, op=0.7, dash="6 7"),             # far half, dashed
+        S.line(poly(arc(0, 5.25, 4, -90, 90, 24)), 1.2, op=0.8),                    # restricted area
+    ])
+
+
 def basketball(S):
     w = []
-    w.append(S.line("".join(f"M{i * 60} 140L{40 + i * 12} -560" for i in range(-14, 16)), 1, op=0.16))
-    w.append(S.hatch("M-700 -660H800V-560H-700Z", 3.2, op=0.55))
-    w.append(S.line("".join(f"M{-690 + i * 11 + rnd(i) * 4:.1f} {-640 + rnd(i * 3) * 30:.1f}a3.4 3.4 0 1 0 6.8 0a3.4 3.4 0 1 0 -6.8 0"
+    w.append(S.hatch("M-700 -690H800V-592H-700Z", 3.2, op=0.55))
+    w.append(S.line("".join(f"M{-690 + i * 11 + rnd(i) * 4:.1f} {-660 + rnd(i * 3) * 34:.1f}a3.4 3.4 0 1 0 6.8 0a3.4 3.4 0 1 0 -6.8 0"
                             for i in range(135)), 0.9, op=0.6))
-    w.append(S.line("M-700 -560H800", 1.6))
-    w.append(S.line("M-14 -560L-60 -270L140 -270L94 -560", 1.4, op=0.8))
-    w.append(S.line(ell(40, -270, 100, 22), 1.2, op=0.6, dash="8 8"))
-    w.append(S.line("M-600 -10Q40 -112 680 -10", 2.4))
+    w.append(S.line("M-700 -592H800", 1.6))
+    w.append(_court(S))
     w.append(S.tube("M40 -570L40 -790", 14))
     w.append(S.line("M40 -760L40 -790M40 -775H70", 2))
 
@@ -715,16 +796,11 @@ def golf(S):
     w += [S.line("M-260 -40L22 -300M300 -40L62 -300", 1.4), S.hatch("M-700 80L-260 -40L22 -300L-700 -300Z", 3.4, op=0.3),
           S.hatch("M800 80L300 -40L62 -300L800 -300Z", 3.4, op=0.3), *reversed(trees)]
     w += [S.line("".join(f"M{-250 + i * 34} -40L{23 + i * 2.4:.1f} -300" for i in range(17)), 0.8, op=0.2)]
-    bunker = "M14 -285.2C12 -287.6 16 -289.4 21 -289C25 -288.8 27 -290.2 30.5 -289.4C33 -288.6 32 -286 28.5 -285.2C24 -284.4 17 -283.6 14 -285.2Z"
     w += [S.shape(ell(44, -292, 30, 7)), S.line(ell(44, -292, 22, 4.6), 0.8, op=0.5, dash="3 3"),
           S.line(ell(44, -292, 13, 2.6), 0.8, op=0.4, dash="2 3"), S.shape(ell(45, -291.2, 1.5, 0.55), fill=S.ink, w=0.6)]
-    # The bunker guards the front left of the green, so it's drawn after (in front of) the green.
-    w += [S.shape(bunker), S.line("".join(f"M{16 + i * 1.5:.1f} {-286.6 + (i % 2) * 0.8:.1f}h0.05" for i in range(10)), 1.6, op=0.7),
-          S.line("M13.6 -285.6C15 -284 22 -283.6 28.5 -284.6", 0.8, op=0.6)]
-    # Clouds: big ones high up for the ball flight, small ones near the horizon behind the green.
-    sky = [_cloud(S, x, y, sc) for x, y, sc in [(-220, -400, 0.9), (140, -430, 1.1), (330, -370, 0.7), (-40, -470, 0.8),
-                                                 (-120, -330, 0.35), (210, -334, 0.3)]]
-    sky += [_cloud(S, x, y, sc) for x, y, sc in [(30, -306.2, 0.045), (60, -307.4, 0.035), (12, -308.6, 0.03)]]
+    # Big clouds out in the open sky to the upper left: seen while the camera pans down the fairway,
+    # never in the tight shot of the green.
+    sky = [_cloud(S, x, y, sc) for x, y, sc in [(-150, -352, 1.25), (-300, -385, 1.5), (-90, -420, 1.1), (-250, -455, 1.3)]]
     w.insert(0, S.g(*sky, loops=[S.loop("transform", [(0, "translateX(0px)"), (15, "translateX(14px)")], 15, "linear")]))
     flag = S.g(S.shape("M45 -312L54 -309L45 -306Z", fill=S.pop, w=0.8),
                loops=[S.loop("transform", [(0, "translate(45px,0px) scale(1,1) translate(-45px,0px)"),
@@ -751,8 +827,8 @@ def golf(S):
             S.line("M-40 -52Q-30 -48 -24 -40", 1.0, op=0.7),
             S.tube("M-30 -22L-14 -16L-6 -12", 7, 0.8), S.tube("M-18 -48L-4 -40L6 -30", 7, 0.8), S.tube("M-24 -36L-8 -28L2 -22", 6.5, 0.8)]
     carried = S.g(tee_art, S.g(ball_art, attrs=' transform="translate(0 -13)"'), show=[(0, 2.75)])
-    tb.append(S.g(*hand, carried, tr=[(0, tf(-190, -230)), (1.2, tf(-190, -230)), (2.1, tf(0, -8), "ease-out"),
-                                      (2.5, tf(0, 0)), (2.75, tf(0, 0)), (3.6, tf(-200, -240), "ease-in")]))
+    tb.append(S.g(*hand, carried, tr=[(0, tf(-360, -360)), (1.2, tf(-360, -360)), (2.1, tf(0, -8), "ease-out"),
+                                      (2.5, tf(0, 0)), (2.75, tf(0, 0)), (3.6, tf(-360, -360), "ease-in")]))
 
     # The driver sits between the ball and the camera, then one smooth swing.
     head_d = "M-66 18C-70 -6 -40 -22 -4 -22C34 -22 64 -8 60 14C56 30 -60 34 -66 18Z"
