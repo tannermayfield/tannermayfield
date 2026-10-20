@@ -8,6 +8,7 @@ subset and embedded as base64 WOFF and all motion is plain CSS keyframes.
 """
 
 import base64
+import hashlib
 import html
 import io
 from pathlib import Path
@@ -563,9 +564,15 @@ def footer(t):
 # --------------------------------------------------------------------------
 
 
+def _versioned(file):
+    """assets/<file>?v=<content hash>: the link changes whenever the image does, so browsers never show a stale copy."""
+    digest = hashlib.sha1((ASSETS / file).read_bytes()).hexdigest()[:8]
+    return f"assets/{file}?v={digest}"
+
+
 def pic(name, alt, width='width="100%"'):
-    return f'<picture><source media="(prefers-color-scheme: dark)" srcset="assets/{name}-dark.svg" />' \
-           f'<img alt="{esc(alt)}" src="assets/{name}-light.svg" {width} /></picture>'
+    return f'<picture><source media="(prefers-color-scheme: dark)" srcset="{_versioned(name + "-dark.svg")}" />' \
+           f'<img alt="{esc(alt)}" src="{_versioned(name + "-light.svg")}" {width} /></picture>'
 
 
 def build():
