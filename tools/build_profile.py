@@ -31,7 +31,7 @@ EMAIL = "tannerjamesmayfield@gmail.com"
 HERO = {
     "location": "PROVO, UTAH",
     "name": ["TANNER", "MAYFIELD"],
-    "tagline": ["Information Systems student building", "AI-assisted, full-stack software", "that adapts to people."],
+    "tagline": ["Information Systems student using", "data and AI automation", "to meet business needs."],
 }
 
 # now.txt rows: (key, value). An empty key continues the row above.
