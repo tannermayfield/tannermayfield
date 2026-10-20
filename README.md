@@ -19,7 +19,7 @@
 
 <br>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/about-dark.svg" /><img alt="Beyond the code: Baseball: I played throughout high school on a travel team, and I am a die-hard Atlanta Braves fan. Chop on! Basketball: This always has and will always be my favorite activity to do with my friends. I am always down to ball! Travel: As a kid, my favorite memories have come while traveling the world with my family. Now, my wife and I travel as much as our schedules allow. Bowling: I am humbly a part of the 200-club at the BYU bowling alley. I got it first try, and now I am going for 300! Golf: Growing up, I thought golf was boring. Now that I am older... it is slightly less boring. That still never stops me from playing a round with my family. Each hobby plays as an animated pencil sketch." src="assets/about-light.svg" width="100%" /></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/about-dark.svg" /><img alt="Beyond the code: Baseball: I played throughout high school on a travel team, and I am a die-hard Atlanta Braves fan. Basketball: This always has and will always be my favorite activity to do with my friends. I am always down to ball! Travel: As a kid, my favorite memories have come while traveling the world with my family. Now, my wife and I travel as much as our schedules allow. Bowling: I am humbly a part of the 200-club at the BYU bowling alley. I got it first try, and now I am going for 300! Golf: Growing up, I thought golf was boring. Now that I am older... it is slightly less boring. That still never stops me from playing a round of 18 with my family. Each hobby plays as an animated pencil sketch." src="assets/about-light.svg" width="100%" /></picture>
 
 <br><br>
 

@@ -120,7 +120,7 @@ ABOUT_HEAD = ("ABOUT ME", "Beyond the code")
 # Each scene is drawn in tools/sketch_scenes.py under the same key.
 HOBBIES = [
     ("baseball", "Baseball",
-     "I played throughout high school on a travel team, and I am a die-hard Atlanta Braves fan. Chop on!", 16),
+     "I played throughout high school on a travel team, and I am a die-hard Atlanta Braves fan.", 16),
     ("basketball", "Basketball",
      "This always has and will always be my favorite activity to do with my friends. I am always down to ball!", 15),
     ("travel", "Travel",
@@ -130,7 +130,7 @@ HOBBIES = [
      "I am humbly a part of the 200-club at the BYU bowling alley. I got it first try, and now I am going for 300!", 16),
     ("golf", "Golf",
      "Growing up, I thought golf was boring. Now that I am older... it is slightly less boring. That still never stops "
-     "me from playing a round with my family.", 15),
+     "me from playing a round of 18 with my family.", 15),
 ]
 
 FOOTER = {
