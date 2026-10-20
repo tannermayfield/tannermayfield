@@ -470,7 +470,8 @@ def stack(t):
 # --------------------------------------------------------------------------
 
 # The drawing area: everything right of the text column, plus the strip beside the heading.
-ART_AREA = "M296 6H834V354H386V198H296Z"  # steps in only where the description paragraph starts
+# Extend beyond the face so the soft text-side mask stays opaque at the outer edges.
+ART_AREA = "M296 -30H870V390H386V198H296Z"  # steps in only where the description paragraph starts
 
 
 def _kf(svg, body):
@@ -506,6 +507,10 @@ def about(t):
     svg.defs.append('<filter id="mb" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="9"/></filter>'
                     f'<mask id="dm" maskUnits="userSpaceOnUse" x="0" y="0" width="840" height="362">'
                     f'<path d="{ART_AREA}" fill="#fff" filter="url(#mb)"/></mask>')
+    # The face is x=2..832, y=2..352 with a 2px border and 14px corner radius.
+    # Clip after the mask and wobble filter, at the border's inner edge; exclude the shadow.
+    svg.defs.append('<clipPath id="sketch-clip" clipPathUnits="userSpaceOnUse">'
+                    '<rect x="3" y="3" width="828" height="348" rx="13"/></clipPath>')
     card(svg, 830, 350, t["bg"])
     b = svg.body
     b += [svg.text(40, 54, label, size=11, fill=t["muted"], ls=0.16),
@@ -529,7 +534,7 @@ def about(t):
                      f'<rect x="120" y="311" width="252" height="6" rx="3" fill="{t["accent"]}" '
                      f'style="transform-box:fill-box;transform-origin:left;animation:{bar} {cycle}s linear infinite"/>')
         sk = Sketch(svg, t, starts[i], dur, cycle, _kf)
-        parts.append(f'<g class="sk" mask="url(#dm)" fill="none" stroke-linecap="round" stroke-linejoin="round">'
+        parts.append(f'<g class="sk" clip-path="url(#sketch-clip)" mask="url(#dm)" fill="none" stroke-linecap="round" stroke-linejoin="round">'
                      f'<g style="animation:boil 0.42s step-end infinite">{SCENES[key](sk)}</g></g>')
         b.append(f'<g class="hob h{i}" style="opacity:0;visibility:hidden;animation:{vis} {cycle}s step-end infinite">'
                  f'{"".join(parts)}</g>')
