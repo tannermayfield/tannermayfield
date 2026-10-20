@@ -561,7 +561,7 @@ def basketball(S):
               tr=[(0, tf()), (10.95, tf()), (11.15, tf(sy=1.28, px=40, py=-705)), (11.35, tf(sy=0.9, r=3, px=40, py=-705)),
                   (11.6, tf(sy=1.06, r=-2, px=40, py=-705)), (12.0, tf())])
     w.append(net)
-    w.append(S.g(S.text(-26, -688, "swish.", 22, 500, fill=S.pop, anchor="end"), show=[(11.2, 13.5)]))
+    w.append(S.g(S.text(-26, -704, "swish.", 22, 500, fill=S.pop, anchor="end"), show=[(11.2, 13.5)]))
 
     camera = [(0, cam(0, -300, 1.7)), (2.3, cam(4, -296, 1.72)), (3.6, cam(15, -112, 1.35)), (6.0, cam(55, -110, 1.35)),
               (6.6, cam(70, -120, 1.3)), (8.0, cam(40, -330, 0.56)), (8.7, cam(40, -360, 0.6)),
@@ -646,8 +646,7 @@ def travel(S):
           S.line("".join(f"M{x} -300v-14m-6 0a6 7 0 1 1 12 0a6 7 0 1 1 -12 0" for x in range(-640, 700, 47)), 1.0, op=0.7),
           S.hatch("M-900 80L-8 -300L-900 -300Z", 4, op=0.35), S.hatch("M900 80L8 -300L900 -300Z", 4, op=0.35),
           S.shape("M-700 80L-6 -300L6 -300L700 80Z"),
-          S.line("M300 -16L12 -296M320 -6L14 -290", 1.4),
-          S.line("".join(f"M{300 - i * 30:.0f} {-16 - i * 29.4:.0f}v14" for i in range(9)), 1.2)]
+]
     lanes = "".join(S.g(S.line(d, 3, dash="34 26"),
                         loops=[S.loop("stroke-dashoffset", [(0, "0"), (0.45, "60")], 0.45)])
                     for d in ["M0 80L0 -300", "M-250 80L-3 -300", "M250 80L3 -300"])
@@ -656,14 +655,14 @@ def travel(S):
                   loops=[S.loop("transform", [(0, "translateY(-30px)"), (0.3, "translateY(40px)")], 0.3),
                          S.loop("opacity", [(0, "1"), (0.3, "0")], 0.3)])
     w.append(streaks)
-    w.append(S.g(*_car(S), tr=[(0, tf()), (4.9, tf()), (6.0, tf(y=-60, sx=0.72), "ease-in"), (7.5, tf(y=-212, sx=0.22)),
-                               (9.0, tf(y=-286, sx=0.06)), (9.6, tf(y=-293, sx=0.03))], ease="linear"))
-    w.append(S.g(*_plane(S), tr=[(10.3, tf(0, -690, sx=3.4)), (11.3, tf(-10, -960, sx=1.15), "ease-out"),
-                                 (12.5, tf(40, -1088, sx=0.44)), (13, tf(54, -1118, sx=0.32))],
-                 show=[(10.3, 99)], ease="linear"))
+    w.append(S.g(*_car(S), tr=[(0, tf()), (3.4, tf()), (4.3, tf(y=-60, sx=0.72), "ease-in"), (5.4, tf(y=-212, sx=0.22)),
+                               (6.4, tf(y=-286, sx=0.06)), (6.9, tf(y=-293, sx=0.03))], ease="linear"))
+    w.append(S.g(*_plane(S), tr=[(8.0, tf(0, -690, sx=3.4)), (9.2, tf(-10, -960, sx=1.15), "ease-out"),
+                                 (11.2, tf(40, -1088, sx=0.44)), (13, tf(62, -1132, sx=0.27))],
+                 show=[(8.0, 99)], ease="linear"))
     # Open on both rear wheels and the plate, pull back as the car leaves, then one unbroken tilt up to the jet.
-    camera = [(0, cam(6, -72, 1.25)), (2.6, cam(6, -74, 1.28)), (4.8, cam(0, -130, 1.05)), (7.2, cam(0, -160, 1.05)),
-              (11.0, cam(0, -1000, 1.0)), (13, cam(10, -1010, 1.02))]
+    camera = [(0, cam(6, -72, 1.25)), (1.8, cam(6, -74, 1.28)), (3.4, cam(0, -130, 1.05)), (5.4, cam(0, -160, 1.05)),
+              (8.6, cam(0, -1000, 1.0)), (13, cam(14, -1022, 1.04))]
     return S.g(*w, tr=camera)
 
 
@@ -793,9 +792,11 @@ def golf(S):
             s = 1.4 - 1.25 * u
             trees.append(S.line(f"M{x:.1f} {y:.1f}v{-14 * s:.1f}", 1.4) +
                          S.shape(ell(x, y - 30 * s, 16 * s, 20 * s)) + S.hatch(ell(x + 3 * s, y - 26 * s, 12 * s, 14 * s), 2.6))
-    w += [S.line("M-260 -40L22 -300M300 -40L62 -300", 1.4), S.hatch("M-700 80L-260 -40L22 -300L-700 -300Z", 3.4, op=0.3),
-          S.hatch("M800 80L300 -40L62 -300L800 -300Z", 3.4, op=0.3), *reversed(trees)]
-    w += [S.line("".join(f"M{-250 + i * 34} -40L{23 + i * 2.4:.1f} -300" for i in range(17)), 0.8, op=0.2)]
+    front = 248 / 260  # share of each fairway line that lies in front of the green
+    w += [S.line("M-260 -40L9 -288M300 -40L73 -288", 1.4),
+          S.hatch("M-700 80L-260 -40L9 -288L44 -302L-700 -302Z", 3.4, op=0.3),
+          S.hatch("M800 80L300 -40L73 -288L44 -302L800 -302Z", 3.4, op=0.3), *reversed(trees)]
+    w += [S.line("".join(f"M{-250 + i * 34} -40L{-250 + i * 34 + (273 - i * 31.6) * front:.1f} -288" for i in range(17)), 0.8, op=0.2)]
     w += [S.shape(ell(44, -292, 30, 7)), S.line(ell(44, -292, 22, 4.6), 0.8, op=0.5, dash="3 3"),
           S.line(ell(44, -292, 13, 2.6), 0.8, op=0.4, dash="2 3"), S.shape(ell(45, -291.2, 1.5, 0.55), fill=S.ink, w=0.6)]
     # Big clouds out in the open sky to the upper left: seen while the camera pans down the fairway,

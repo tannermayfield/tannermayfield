@@ -120,15 +120,17 @@ ABOUT_HEAD = ("ABOUT ME", "Beyond the code")
 # Each scene is drawn in tools/sketch_scenes.py under the same key.
 HOBBIES = [
     ("baseball", "Baseball",
-     "I played all through high school on various travel teams, and I'm a die-hard Atlanta Braves fan.", 16),
+     "I played throughout high school on a travel team, and I am a die-hard Atlanta Braves fan. Chop on!", 16),
     ("basketball", "Basketball",
-     "My favorite pastime with my friends for as long as I can remember.", 15),
+     "This always has and will always be my favorite activity to do with my friends. I am always down to ball!", 15),
     ("travel", "Travel",
-     "As a kid, traveling with my family was how we connected. Now my wife and I travel as much as our schedule allows.", 13),
+     "As a kid, my favorite memories have come while traveling the world with my family. Now, my wife and I travel as "
+     "much as our schedules allow.", 13),
     ("bowling", "Bowling",
-     "Humbly part of the 200 club at the BYU bowling alley. I got the score on my first try, and now I'm going for 300.", 16),
+     "I am humbly a part of the 200-club at the BYU bowling alley. I got it first try, and now I am going for 300!", 16),
     ("golf", "Golf",
-     "As a kid I thought golf was boring. Now that I'm older... golf is still boring, but in a relaxing way I enjoy with friends and family.", 15),
+     "Growing up, I thought golf was boring. Now that I am older... it is slightly less boring. That still never stops "
+     "me from playing a round with my family.", 15),
 ]
 
 FOOTER = {
@@ -467,7 +469,7 @@ def stack(t):
 # --------------------------------------------------------------------------
 
 # The drawing area: everything right of the text column, plus the strip beside the heading.
-ART_AREA = "M296 6H834V354H386V116H296Z"
+ART_AREA = "M296 6H834V354H386V198H296Z"  # steps in only where the description paragraph starts
 
 
 def _kf(svg, body):
